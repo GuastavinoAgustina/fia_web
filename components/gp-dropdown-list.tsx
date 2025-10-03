@@ -4,10 +4,11 @@ import { useState } from "react";
 import AnimatedList from "./AnimatedList";
 
 interface DropdownProps {
-  label: string;             
+  label: string; 
+  listaGP: string[];            
 }
 
-export default function GranPrixDropdown({ label }: DropdownProps) {
+export default function GranPrixDropdown({ label , listaGP}: DropdownProps) {
   const [open, setOpen] = useState(false);
   const [selectedLabel, setSelectedLabel] = useState(label);
 
@@ -24,7 +25,7 @@ export default function GranPrixDropdown({ label }: DropdownProps) {
       {open && (
         <div className="absolute mt-2 w-48 rounded-lg shadow-lg z-10">
           <AnimatedList
-          items= {['México', 'De las Américas', 'Brasil', 'Miami', 'Las Vegas', 'Abu Dabi', 'Catar', 'Bareín', 'Emilia-Romaña', 'Italia']}
+          items= {listaGP}
           onItemSelect={(item, index) => {
                 console.log(item, index)
                 setSelectedLabel(item)
