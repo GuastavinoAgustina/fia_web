@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, ChangeEvent } from "react";
 
 type Piloto = {
   id: number;
   nombre: string;
+  apellido: string;
+  fechaNacimiento: string;
+  edad: number;
   rol: "Titular" | "Suplente";
   escuderiaId: number;
+  foto?: string; // URL base64 de la imagen
 };
 
 type Escuderia = {
@@ -18,8 +22,14 @@ type Escuderia = {
 export default function PerfilesPage() {
   const [escuderias, setEscuderias] = useState<Escuderia[]>([]);
   const [nombreEscuderia, setNombreEscuderia] = useState("");
+
+  // Datos piloto nuevo
   const [nombrePiloto, setNombrePiloto] = useState("");
+  const [apellidoPiloto, setApellidoPiloto] = useState("");
+  const [fechaNacimientoPiloto, setFechaNacimientoPiloto] = useState("");
   const [rolPiloto, setRolPiloto] = useState<"Titular" | "Suplente">("Titular");
+  const [fotoPiloto, setFotoPiloto] = useState<string | undefined>(undefined);
+
   const [escuderiaSeleccionada, setEscuderiaSeleccionada] = useState<number | null>(null);
 
   // Estados de edición
@@ -28,7 +38,33 @@ export default function PerfilesPage() {
 
   const [pilotoEditando, setPilotoEditando] = useState<number | null>(null);
   const [nuevoNombrePiloto, setNuevoNombrePiloto] = useState("");
+  const [nuevoApellidoPiloto, setNuevoApellidoPiloto] = useState("");
+  const [nuevaFechaNacimientoPiloto, setNuevaFechaNacimientoPiloto] = useState("");
   const [nuevoRolPiloto, setNuevoRolPiloto] = useState<"Titular" | "Suplente">("Titular");
+  const [nuevaFotoPiloto, setNuevaFotoPiloto] = useState<string | undefined>(undefined);
+
+  // Función para calcular edad
+  const calcularEdad = (fecha: string): number => {
+    const nacimiento = new Date(fecha);
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const m = hoy.getMonth() - nacimiento.getMonth();
+    if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+      edad--;
+    }
+    return edad;
+  };
+
+  // Manejo de imagen
+  const handleFotoChange = (e: ChangeEvent<HTMLInputElement>, setFoto: (value: string | undefined) => void) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFoto(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Agregar escudería
   const agregarEscuderia = () => {
@@ -55,20 +91,32 @@ export default function PerfilesPage() {
 
   // Agregar piloto
   const agregarPiloto = (escuderiaId: number) => {
-    if (!nombrePiloto.trim()) return alert("El nombre no puede estar vacío");
+    if (!nombrePiloto.trim() || !apellidoPiloto.trim() || !fechaNacimientoPiloto)
+      return alert("Nombre, apellido y fecha de nacimiento son obligatorios");
+
     const nuevo: Piloto = {
       id: Date.now(),
       nombre: nombrePiloto,
+      apellido: apellidoPiloto,
+      fechaNacimiento: fechaNacimientoPiloto,
+      edad: calcularEdad(fechaNacimientoPiloto),
       rol: rolPiloto,
       escuderiaId,
+      foto: fotoPiloto,
     };
+
     setEscuderias(
       escuderias.map((e) =>
         e.id === escuderiaId ? { ...e, pilotos: [...e.pilotos, nuevo] } : e
       )
     );
+
+    // Reset
     setNombrePiloto("");
+    setApellidoPiloto("");
+    setFechaNacimientoPiloto("");
     setRolPiloto("Titular");
+    setFotoPiloto(undefined);
     setEscuderiaSeleccionada(null);
   };
 
@@ -81,7 +129,15 @@ export default function PerfilesPage() {
               ...e,
               pilotos: e.pilotos.map((p) =>
                 p.id === pilotoId
-                  ? { ...p, nombre: nuevoNombrePiloto, rol: nuevoRolPiloto }
+                  ? {
+                      ...p,
+                      nombre: nuevoNombrePiloto,
+                      apellido: nuevoApellidoPiloto,
+                      fechaNacimiento: nuevaFechaNacimientoPiloto,
+                      edad: calcularEdad(nuevaFechaNacimientoPiloto),
+                      rol: nuevoRolPiloto,
+                      foto: nuevaFotoPiloto ?? p.foto,
+                    }
                   : p
               ),
             }
@@ -89,8 +145,6 @@ export default function PerfilesPage() {
       )
     );
     setPilotoEditando(null);
-    setNuevoNombrePiloto("");
-    setNuevoRolPiloto("Titular");
   };
 
   // Eliminar piloto
@@ -184,18 +238,30 @@ export default function PerfilesPage() {
           {/* Lista de Pilotos */}
           <ul className="mb-3">
             {e.pilotos.map((p) => (
-              <li
-                key={p.id}
-                className="flex justify-between items-center bg-muted p-2 rounded mb-1"
-              >
+              <li key={p.id} className="flex justify-between items-center bg-muted p-2 rounded mb-1">
                 {pilotoEditando === p.id ? (
-                  <div className="flex w-full gap-2">
+                  <div className="flex flex-col w-full gap-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={nuevoNombrePiloto}
+                        onChange={(ev) => setNuevoNombrePiloto(ev.target.value)}
+                        placeholder="Nombre"
+                        className="flex-1 p-2 border rounded bg-input text-foreground"
+                      />
+                      <input
+                        type="text"
+                        value={nuevoApellidoPiloto}
+                        onChange={(ev) => setNuevoApellidoPiloto(ev.target.value)}
+                        placeholder="Apellido"
+                        className="flex-1 p-2 border rounded bg-input text-foreground"
+                      />
+                    </div>
                     <input
-                      type="text"
-                      value={nuevoNombrePiloto}
-                      onChange={(ev) => setNuevoNombrePiloto(ev.target.value)}
-                      placeholder="Nuevo nombre"
-                      className="flex-1 p-2 border rounded bg-input text-foreground"
+                      type="date"
+                      value={nuevaFechaNacimientoPiloto}
+                      onChange={(ev) => setNuevaFechaNacimientoPiloto(ev.target.value)}
+                      className="p-2 border rounded bg-input text-foreground"
                     />
                     <select
                       value={nuevoRolPiloto}
@@ -207,30 +273,46 @@ export default function PerfilesPage() {
                       <option value="Titular">Titular</option>
                       <option value="Suplente">Suplente</option>
                     </select>
-                    <button
-                      onClick={() => guardarEdicionPiloto(e.id, p.id)}
-                      className="bg-green-600 text-white px-3 py-1 rounded"
-                    >
-                      Guardar
-                    </button>
-                    <button
-                      onClick={() => setPilotoEditando(null)}
-                      className="bg-gray-500 text-white px-3 py-1 rounded"
-                    >
-                      Cancelar
-                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFotoChange(e, setNuevaFotoPiloto)}
+                      className="p-1"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => guardarEdicionPiloto(e.id, p.id)}
+                        className="bg-green-600 text-white px-3 py-1 rounded"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        onClick={() => setPilotoEditando(null)}
+                        className="bg-gray-500 text-white px-3 py-1 rounded"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <>
-                    <span>
-                      {p.nombre} ({p.rol})
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {p.foto && (
+                        <img src={p.foto} alt="foto piloto" className="w-10 h-10 rounded-full object-cover" />
+                      )}
+                      <span>
+                        {p.nombre} {p.apellido} - {p.edad} años ({p.rol})
+                      </span>
+                    </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
                           setPilotoEditando(p.id);
                           setNuevoNombrePiloto(p.nombre);
+                          setNuevoApellidoPiloto(p.apellido);
+                          setNuevaFechaNacimientoPiloto(p.fechaNacimiento);
                           setNuevoRolPiloto(p.rol);
+                          setNuevaFotoPiloto(p.foto);
                         }}
                         className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600"
                       >
@@ -256,7 +338,20 @@ export default function PerfilesPage() {
                 type="text"
                 value={nombrePiloto}
                 onChange={(ev) => setNombrePiloto(ev.target.value)}
-                placeholder="Nombre del piloto"
+                placeholder="Nombre"
+                className="w-full p-2 border rounded mb-2 bg-input text-foreground"
+              />
+              <input
+                type="text"
+                value={apellidoPiloto}
+                onChange={(ev) => setApellidoPiloto(ev.target.value)}
+                placeholder="Apellido"
+                className="w-full p-2 border rounded mb-2 bg-input text-foreground"
+              />
+              <input
+                type="date"
+                value={fechaNacimientoPiloto}
+                onChange={(ev) => setFechaNacimientoPiloto(ev.target.value)}
                 className="w-full p-2 border rounded mb-2 bg-input text-foreground"
               />
               <select
@@ -269,6 +364,12 @@ export default function PerfilesPage() {
                 <option value="Titular">Titular</option>
                 <option value="Suplente">Suplente</option>
               </select>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFotoChange(e, setFotoPiloto)}
+                className="mb-2"
+              />
               <button
                 onClick={() => agregarPiloto(e.id)}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
