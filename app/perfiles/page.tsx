@@ -1,38 +1,39 @@
 "use client";
 
-import { useState, ChangeEvent } from "react";
+import { useEffect, useState, ChangeEvent } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/toast-provider";
+
+const supabase = createClient();
 
 type Piloto = {
-  id: number;
+  id_piloto: number;
   nombre: string;
   apellido: string;
-  fechaNacimiento: string;
-  edad: number;
-  rol: "Titular" | "Suplente";
-  escuderiaId: number;
-  foto?: string; // URL base64 de la imagen
+  fecha_nacimiento: string;
+  titular: boolean;
+  escuderia_id: number;
+  foto?: string; // base64
 };
 
 type Escuderia = {
-  id: number;
+  id_escuderia: number;
   nombre: string;
-  pilotos: Piloto[];
+  pilotos?: Piloto[];
 };
 
 export default function PerfilesPage() {
   const [escuderias, setEscuderias] = useState<Escuderia[]>([]);
   const [nombreEscuderia, setNombreEscuderia] = useState("");
 
-  // Datos piloto nuevo
   const [nombrePiloto, setNombrePiloto] = useState("");
   const [apellidoPiloto, setApellidoPiloto] = useState("");
   const [fechaNacimientoPiloto, setFechaNacimientoPiloto] = useState("");
-  const [rolPiloto, setRolPiloto] = useState<"Titular" | "Suplente">("Titular");
+  const [titularPiloto, setTitularPiloto] = useState(true);
   const [fotoPiloto, setFotoPiloto] = useState<string | undefined>(undefined);
 
   const [escuderiaSeleccionada, setEscuderiaSeleccionada] = useState<number | null>(null);
 
-  // Estados de edición
   const [escuderiaEditando, setEscuderiaEditando] = useState<number | null>(null);
   const [nuevoNombreEscuderia, setNuevoNombreEscuderia] = useState("");
 
@@ -40,128 +41,130 @@ export default function PerfilesPage() {
   const [nuevoNombrePiloto, setNuevoNombrePiloto] = useState("");
   const [nuevoApellidoPiloto, setNuevoApellidoPiloto] = useState("");
   const [nuevaFechaNacimientoPiloto, setNuevaFechaNacimientoPiloto] = useState("");
-  const [nuevoRolPiloto, setNuevoRolPiloto] = useState<"Titular" | "Suplente">("Titular");
+  const [nuevoTitularPiloto, setNuevoTitularPiloto] = useState(true);
   const [nuevaFotoPiloto, setNuevaFotoPiloto] = useState<string | undefined>(undefined);
 
-  // Función para calcular edad
-  const calcularEdad = (fecha: string): number => {
-    const nacimiento = new Date(fecha);
-    const hoy = new Date();
-    let edad = hoy.getFullYear() - nacimiento.getFullYear();
-    const m = hoy.getMonth() - nacimiento.getMonth();
-    if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
-      edad--;
-    }
-    return edad;
-  };
+  const { addToast } = useToast();
 
-  // Manejo de imagen
+  // 🔹 Manejo de imagen en base64
   const handleFotoChange = (e: ChangeEvent<HTMLInputElement>, setFoto: (value: string | undefined) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setFoto(reader.result as string);
-    };
+    reader.onloadend = () => setFoto(reader.result as string);
     reader.readAsDataURL(file);
   };
 
-  // Agregar escudería
-  const agregarEscuderia = () => {
-    if (!nombreEscuderia.trim()) return alert("El nombre no puede estar vacío");
-    const nueva: Escuderia = {
-      id: Date.now(),
-      nombre: nombreEscuderia,
-      pilotos: [],
-    };
-    setEscuderias([...escuderias, nueva]);
-    setNombreEscuderia("");
-  };
+  // 🔹 Cargar escuderías y pilotos
+  useEffect(() => {
+    fetchEscuderias();
+  }, []);
 
-  // Editar escudería
-  const guardarEdicionEscuderia = (id: number) => {
-    setEscuderias(
-      escuderias.map((e) =>
-        e.id === id ? { ...e, nombre: nuevoNombreEscuderia } : e
-      )
-    );
-    setEscuderiaEditando(null);
-    setNuevoNombreEscuderia("");
-  };
+  async function fetchEscuderias() {
+    const { data, error } = await supabase
+      .from("Escuderia")
+      .select("*, Pilotos(*)")
+      .order("id_escuderia");
 
-  // Agregar piloto
-  const agregarPiloto = (escuderiaId: number) => {
-    if (!nombrePiloto.trim() || !apellidoPiloto.trim() || !fechaNacimientoPiloto)
-      return alert("Nombre, apellido y fecha de nacimiento son obligatorios");
+    if (error) {
+      console.log(error);
+      addToast("Error al cargar escuderías");
+    } else if (data) {
+      setEscuderias(data);
+    }
+  }
 
-    const nuevo: Piloto = {
-      id: Date.now(),
+  // 🔹 Agregar escudería
+  async function agregarEscuderia() {
+    if (!nombreEscuderia.trim()) return addToast("El nombre no puede estar vacío");
+    const { error } = await supabase.from("Escuderia").insert([{ nombre: nombreEscuderia }]);
+    if (!error) {
+      setNombreEscuderia("");
+      fetchEscuderias();
+      addToast(`Escudería "${nombreEscuderia}" añadida`);
+    }
+  }
+
+  // 🔹 Editar escudería
+  async function guardarEdicionEscuderia(id: number) {
+    const { error } = await supabase
+      .from("Escuderia")
+      .update({ nombre: nuevoNombreEscuderia })
+      .eq("id_escuderia", id);
+
+    if (!error) {
+      setEscuderiaEditando(null);
+      setNuevoNombreEscuderia("");
+      fetchEscuderias();
+      addToast("Escudería actualizada");
+    }
+  }
+
+  // 🔹 Agregar piloto
+  async function agregarPiloto(escuderiaId: number) {
+    if (!nombrePiloto.trim() || !apellidoPiloto.trim() || !fechaNacimientoPiloto) {
+      return addToast("Nombre, apellido y fecha de nacimiento son obligatorios");
+    }
+
+    const nuevo: Omit<Piloto, "id_piloto"> = {
       nombre: nombrePiloto,
       apellido: apellidoPiloto,
-      fechaNacimiento: fechaNacimientoPiloto,
-      edad: calcularEdad(fechaNacimientoPiloto),
-      rol: rolPiloto,
-      escuderiaId,
+      fecha_nacimiento: fechaNacimientoPiloto,
+      titular: titularPiloto,
+      escuderia_id: escuderiaId,
       foto: fotoPiloto,
     };
 
-    setEscuderias(
-      escuderias.map((e) =>
-        e.id === escuderiaId ? { ...e, pilotos: [...e.pilotos, nuevo] } : e
-      )
-    );
+    const { error } = await supabase.from("Piloto").insert([nuevo]);
+    if (!error) {
+      setNombrePiloto("");
+      setApellidoPiloto("");
+      setFechaNacimientoPiloto("");
+      setTitularPiloto(true);
+      setFotoPiloto(undefined);
+      setEscuderiaSeleccionada(null);
+      fetchEscuderias();
+      addToast("Piloto añadido");
+    }
+  }
 
-    // Reset
-    setNombrePiloto("");
-    setApellidoPiloto("");
-    setFechaNacimientoPiloto("");
-    setRolPiloto("Titular");
-    setFotoPiloto(undefined);
-    setEscuderiaSeleccionada(null);
-  };
+  // 🔹 Editar piloto
+  async function guardarEdicionPiloto(p: Piloto) {
+    const { error } = await supabase
+      .from("Piloto")
+      .update({
+        nombre: nuevoNombrePiloto,
+        apellido: nuevoApellidoPiloto,
+        fecha_nacimiento: nuevaFechaNacimientoPiloto,
+        titular: nuevoTitularPiloto,
+        foto: nuevaFotoPiloto ?? p.foto,
+      })
+      .eq("id_piloto", p.id_piloto);
 
-  // Editar piloto
-  const guardarEdicionPiloto = (escuderiaId: number, pilotoId: number) => {
-    setEscuderias(
-      escuderias.map((e) =>
-        e.id === escuderiaId
-          ? {
-              ...e,
-              pilotos: e.pilotos.map((p) =>
-                p.id === pilotoId
-                  ? {
-                      ...p,
-                      nombre: nuevoNombrePiloto,
-                      apellido: nuevoApellidoPiloto,
-                      fechaNacimiento: nuevaFechaNacimientoPiloto,
-                      edad: calcularEdad(nuevaFechaNacimientoPiloto),
-                      rol: nuevoRolPiloto,
-                      foto: nuevaFotoPiloto ?? p.foto,
-                    }
-                  : p
-              ),
-            }
-          : e
-      )
-    );
-    setPilotoEditando(null);
-  };
+    if (!error) {
+      setPilotoEditando(null);
+      fetchEscuderias();
+      addToast("Piloto actualizado");
+    }
+  }
 
-  // Eliminar piloto
-  const eliminarPiloto = (escuderiaId: number, pilotoId: number) => {
-    setEscuderias(
-      escuderias.map((e) =>
-        e.id === escuderiaId
-          ? { ...e, pilotos: e.pilotos.filter((p) => p.id !== pilotoId) }
-          : e
-      )
-    );
-  };
+  // 🔹 Eliminar piloto
+  async function eliminarPiloto(p: Piloto) {
+    const { error } = await supabase.from("Piloto").delete().eq("id_piloto", p.id_piloto);
+    if (!error) {
+      fetchEscuderias();
+      addToast(`Piloto "${p.nombre}" eliminado`);
+    }
+  }
 
-  // Eliminar escudería
-  const eliminarEscuderia = (id: number) => {
-    setEscuderias(escuderias.filter((e) => e.id !== id));
-  };
+  // 🔹 Eliminar escudería
+  async function eliminarEscuderia(id: number) {
+    const { error } = await supabase.from("Escuderia").delete().eq("id_escuderia", id);
+    if (!error) {
+      fetchEscuderias();
+      addToast("Escudería eliminada");
+    }
+  }
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -185,11 +188,11 @@ export default function PerfilesPage() {
         </button>
       </div>
 
-      {/* Lista de Escuderías */}
+      {/* Lista de Escuderías y pilotos */}
       {escuderias.map((e) => (
-        <div key={e.id} className="bg-card text-card-foreground shadow p-4 rounded mb-4">
+        <div key={e.id_escuderia} className="bg-card text-card-foreground shadow p-4 rounded mb-4">
           <div className="flex justify-between items-center mb-2">
-            {escuderiaEditando === e.id ? (
+            {escuderiaEditando === e.id_escuderia ? (
               <div className="flex w-full gap-2">
                 <input
                   type="text"
@@ -199,7 +202,7 @@ export default function PerfilesPage() {
                   className="flex-1 p-2 border rounded bg-input text-foreground"
                 />
                 <button
-                  onClick={() => guardarEdicionEscuderia(e.id)}
+                  onClick={() => guardarEdicionEscuderia(e.id_escuderia)}
                   className="bg-green-600 text-white px-3 py-1 rounded"
                 >
                   Guardar
@@ -217,7 +220,7 @@ export default function PerfilesPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      setEscuderiaEditando(e.id);
+                      setEscuderiaEditando(e.id_escuderia);
                       setNuevoNombreEscuderia(e.nombre);
                     }}
                     className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
@@ -225,7 +228,7 @@ export default function PerfilesPage() {
                     Editar
                   </button>
                   <button
-                    onClick={() => eliminarEscuderia(e.id)}
+                    onClick={() => eliminarEscuderia(e.id_escuderia)}
                     className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
                   >
                     Eliminar
@@ -235,11 +238,11 @@ export default function PerfilesPage() {
             )}
           </div>
 
-          {/* Lista de Pilotos */}
+          {/* Lista de pilotos */}
           <ul className="mb-3">
-            {e.pilotos.map((p) => (
-              <li key={p.id} className="flex justify-between items-center bg-muted p-2 rounded mb-1">
-                {pilotoEditando === p.id ? (
+            {e.pilotos?.map((p) => (
+              <li key={p.id_piloto} className="flex justify-between items-center bg-muted p-2 rounded mb-1">
+                {pilotoEditando === p.id_piloto ? (
                   <div className="flex flex-col w-full gap-2">
                     <div className="flex gap-2">
                       <input
@@ -264,10 +267,8 @@ export default function PerfilesPage() {
                       className="p-2 border rounded bg-input text-foreground"
                     />
                     <select
-                      value={nuevoRolPiloto}
-                      onChange={(ev) =>
-                        setNuevoRolPiloto(ev.target.value as "Titular" | "Suplente")
-                      }
+                      value={nuevoTitularPiloto ? "Titular" : "Suplente"}
+                      onChange={(ev) => setNuevoTitularPiloto(ev.target.value === "Titular")}
                       className="p-2 border rounded bg-input text-foreground"
                     >
                       <option value="Titular">Titular</option>
@@ -281,7 +282,7 @@ export default function PerfilesPage() {
                     />
                     <div className="flex gap-2">
                       <button
-                        onClick={() => guardarEdicionPiloto(e.id, p.id)}
+                        onClick={() => guardarEdicionPiloto(p)}
                         className="bg-green-600 text-white px-3 py-1 rounded"
                       >
                         Guardar
@@ -295,23 +296,23 @@ export default function PerfilesPage() {
                     </div>
                   </div>
                 ) : (
-                  <>
+                  <div className="flex justify-between items-center w-full">
                     <div className="flex items-center gap-2">
                       {p.foto && (
                         <img src={p.foto} alt="foto piloto" className="w-10 h-10 rounded-full object-cover" />
                       )}
                       <span>
-                        {p.nombre} {p.apellido} - {p.edad} años ({p.rol})
+                        {p.nombre} {p.apellido} ({p.titular ? "Titular" : "Suplente"})
                       </span>
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
-                          setPilotoEditando(p.id);
+                          setPilotoEditando(p.id_piloto);
                           setNuevoNombrePiloto(p.nombre);
                           setNuevoApellidoPiloto(p.apellido);
-                          setNuevaFechaNacimientoPiloto(p.fechaNacimiento);
-                          setNuevoRolPiloto(p.rol);
+                          setNuevaFechaNacimientoPiloto(p.fecha_nacimiento);
+                          setNuevoTitularPiloto(p.titular);
                           setNuevaFotoPiloto(p.foto);
                         }}
                         className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600"
@@ -319,20 +320,20 @@ export default function PerfilesPage() {
                         Editar
                       </button>
                       <button
-                        onClick={() => eliminarPiloto(e.id, p.id)}
+                        onClick={() => eliminarPiloto(p)}
                         className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
                       >
                         Eliminar
                       </button>
                     </div>
-                  </>
+                  </div>
                 )}
               </li>
             ))}
           </ul>
 
-          {/* Formulario para agregar pilotos */}
-          {escuderiaSeleccionada === e.id ? (
+          {/* Formulario para agregar piloto */}
+          {escuderiaSeleccionada === e.id_escuderia ? (
             <div className="bg-secondary text-secondary-foreground p-3 rounded">
               <input
                 type="text"
@@ -355,10 +356,8 @@ export default function PerfilesPage() {
                 className="w-full p-2 border rounded mb-2 bg-input text-foreground"
               />
               <select
-                value={rolPiloto}
-                onChange={(ev) =>
-                  setRolPiloto(ev.target.value as "Titular" | "Suplente")
-                }
+                value={titularPiloto ? "Titular" : "Suplente"}
+                onChange={(ev) => setTitularPiloto(ev.target.value === "Titular")}
                 className="w-full p-2 border rounded mb-2 bg-input text-foreground"
               >
                 <option value="Titular">Titular</option>
@@ -371,7 +370,7 @@ export default function PerfilesPage() {
                 className="mb-2"
               />
               <button
-                onClick={() => agregarPiloto(e.id)}
+                onClick={() => agregarPiloto(e.id_escuderia)}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
               >
                 Guardar Piloto
@@ -379,7 +378,7 @@ export default function PerfilesPage() {
             </div>
           ) : (
             <button
-              onClick={() => setEscuderiaSeleccionada(e.id)}
+              onClick={() => setEscuderiaSeleccionada(e.id_escuderia)}
               className="bg-primary text-primary-foreground px-3 py-1 rounded hover:opacity-80"
             >
               Añadir Piloto
