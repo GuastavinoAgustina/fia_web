@@ -63,7 +63,7 @@ export default function PerfilesPage() {
   async function fetchEscuderias() {
     const { data, error } = await supabase
       .from("Escuderia")
-      .select("*, Pilotos(*)")
+      .select("*, Piloto(*)")
       .order("id_escuderia");
 
     if (error) {
