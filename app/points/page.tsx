@@ -50,6 +50,7 @@ useEffect(() => {
 
 
   const handleSelectCategoria = async (item: string) => {
+    setSelectedCarrera(null);
     const categoriaSeleccionada = listaCategorias.find((categoria)=> categoria.nombre === item)
     if(categoriaSeleccionada)
       setSelectedCategoria(categoriaSeleccionada);
@@ -70,12 +71,9 @@ useEffect(() => {
     }
       
   };
-  
-
-
-  
 
     const handleSelectCarrera = async (item: String) => {
+      setListaPilotosAPuntear([])
       const carreraSeleccionada = listaCarreras.find((carrera)=> carrera.nombre === item)
       setSelectedCarrera(carreraSeleccionada!)
       console.log(carreraSeleccionada)
@@ -178,6 +176,7 @@ useEffect(() => {
                   <div>
                     <input
                       type="number"
+                      min="0"
                       onChange={e => handlePuntosChange(p.id_piloto, Number(e.target.value))}
                       className="border px-2 py-1 rounded mb-4 w-16 text-center"
                     />
