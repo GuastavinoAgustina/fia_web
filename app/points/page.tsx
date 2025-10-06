@@ -8,9 +8,9 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 
 //TODO manejar errores en las consultas a la DB. También se prodría notificar cuando los datos se guardan exitosamente
 export default function Home() {
-  const [selectedCategoria, setSelectedCategoria] = useState<string | null>(null);
+  const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
   const [selectedCarrera, setSelectedCarrera] = useState<Carrera | null>(null)
-  const [listaCategorias, setListaCategorias] = useState<string[]>([]);
+  const [listaCategorias, setListaCategorias] = useState<Categoria[]>([]);
   const [listaCarreras, setListaCarreras] = useState<Carrera[]>([]);
   const [listaPilotos, setListaPilotos] = useState<Piloto[]>([]);
   const [listaPilotosAPuntear, setListaPilotosAPuntear] = useState<Piloto[]>([]);
@@ -26,18 +26,37 @@ type Carrera = {
   nombre:string;
 }
 
-  
+type Categoria = {
+  id_categoria:number;
+  nombre:string
+}
+
+useEffect(() => {
+  async function fetchCategorias() {
+    const { data: categorias, error } = await supabase
+      .from("Categoria")
+      .select('nombre, id_categoria');
+    if (categorias) {
+      setListaCategorias(categorias.map((it: any) => ( 
+        {
+          id_categoria: it.id_categoria,
+          nombre: it.nombre,
+        }
+      )));
+    }
+  }
+  fetchCategorias();
+}, []);
+
+
   const handleSelectCategoria = async (item: string) => {
-    setSelectedCategoria(item);
+    const categoriaSeleccionada = listaCategorias.find((categoria)=> categoria.nombre === item)
+    if(categoriaSeleccionada)
+      setSelectedCategoria(categoriaSeleccionada);
     const { data, error } = await supabase
       .from('Carrera')
-      .select(
-        `
-        id_carrera,
-        nombre
-        `,
-      )
-      .ilike('id_categoria', `${selectedCategoria}`)
+      .select('id_carrera, nombre')
+      .eq('id_categoria', categoriaSeleccionada?.id_categoria)
     if(error)
         console.log(error)
     if (data) {
@@ -52,32 +71,21 @@ type Carrera = {
       
   };
   
-  useEffect(() => {
-    async function fetchCategorias() {
-      const { data: categorias, error } = await supabase
-        .from("Categoria")
-        .select('nombre');
-      if (categorias) {
-        setListaCategorias(categorias.map((it: any) => it.nombre));
-      }
-    }
-    fetchCategorias();
-  }, []);
+
 
   
 
     const handleSelectCarrera = async (item: String) => {
       const carreraSeleccionada = listaCarreras.find((carrera)=> carrera.nombre === item)
       setSelectedCarrera(carreraSeleccionada!)
+      console.log(carreraSeleccionada)
       const { data, error } = await supabase
         .from('Piloto')
-        .select(
-          `
+        .select(`
           *,
-          ...corre!inner()
-          `,
-        )
-       .eq('corre.id_carrera', `${selectedCarrera}`);
+          ...Corre!inner()
+        `)
+        .eq('Corre.id_carrera', carreraSeleccionada?.id_carrera);
       if(data)
         setListaPilotos(data.map((it: any) => ({
           id_piloto: it.id_piloto, 
@@ -113,11 +121,10 @@ type Carrera = {
   const cargarPuntosEnDB = ()=>{
     listaPilotosAPuntear.forEach(async piloto =>{
       const { data, error } = await supabase
-          .from('corre')                  
+          .from('Corre')                  
           .update({ puntaje: piloto.puntos })   
           .eq('id_piloto', piloto.id_piloto)     
           .eq('id_carrera', selectedCarrera?.id_carrera); 
-        
         if (error) {
           console.error('Error updating puntaje:', error);
         } else {
@@ -134,7 +141,7 @@ type Carrera = {
       <h1> Seleccione una categoría</h1>
       <GranPrixDropdown
         label="Seleccione una categoría"
-        listaGP={listaCategorias}
+        listaGP={listaCategorias.map(it=>it.nombre)}
         setSelected={handleSelectCategoria}
       />
       {selectedCategoria && (
@@ -142,7 +149,7 @@ type Carrera = {
           <h2>Seleccione una carrera</h2>
           <GranPrixDropdown
             label="Seleccione carrera"
-            listaGP={listaCarreras.map(it=>it.nombre)} //debug
+            listaGP={listaCarreras.map(it=>it.nombre)} 
             setSelected={handleSelectCarrera}
           />
         </div>
@@ -189,7 +196,7 @@ type Carrera = {
           </ul>
           <div className="flex gap-2">
             <button
-              onClick={() => console.log(listaPilotosAPuntear)}
+              onClick={() => cargarPuntosEnDB()}
               className="bg-green-500 text-white px-2 py-1 rounded hover:bg-red-600"
             >
               Guardar Puntaje
