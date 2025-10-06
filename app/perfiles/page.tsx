@@ -1,391 +1,241 @@
 "use client";
 
-import { useEffect, useState, ChangeEvent } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { useToast } from "@/components/toast-provider";
+import { useState, useEffect, ChangeEvent } from "react";
+import { createClient } from "@supabase/supabase-js";
+import GranPrixDropdown from "@/components/gp-dropdown-list";
+import Image from "next/image";
 
-const supabase = createClient();
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!
+);
 
 type Piloto = {
   id_piloto: number;
   nombre: string;
-  apellido: string;
-  fecha_nacimiento: string;
-  titular: boolean;
-  escuderia_id: number;
-  foto?: string; // base64
+  foto?: string | null;
 };
 
 type Escuderia = {
   id_escuderia: number;
   nombre: string;
-  pilotos?: Piloto[];
 };
 
 export default function PerfilesPage() {
-  const [escuderias, setEscuderias] = useState<Escuderia[]>([]);
-  const [nombreEscuderia, setNombreEscuderia] = useState("");
+  const [listaEscuderias, setListaEscuderias] = useState<Escuderia[]>([]);
+  const [listaPilotos, setListaPilotos] = useState<Piloto[]>([]);
+  const [escuderiaSeleccionada, setEscuderiaSeleccionada] = useState<Escuderia | null>(null);
+  const [pilotoSeleccionado, setPilotoSeleccionado] = useState<Piloto | null>(null);
+  const [titular, setTitular] = useState<boolean>(true);
+  const [nuevaFoto, setNuevaFoto] = useState<string | undefined>(undefined);
+  const [mostrarFormulario, setMostrarFormulario] = useState<boolean>(false);
 
-  const [nombrePiloto, setNombrePiloto] = useState("");
-  const [apellidoPiloto, setApellidoPiloto] = useState("");
-  const [fechaNacimientoPiloto, setFechaNacimientoPiloto] = useState("");
-  const [titularPiloto, setTitularPiloto] = useState(true);
-  const [fotoPiloto, setFotoPiloto] = useState<string | undefined>(undefined);
+  // --- Nuevo estado para crear escuderías ---
+  const [nuevaEscuderia, setNuevaEscuderia] = useState<string>("");
 
-  const [escuderiaSeleccionada, setEscuderiaSeleccionada] = useState<number | null>(null);
-
-  const [escuderiaEditando, setEscuderiaEditando] = useState<number | null>(null);
-  const [nuevoNombreEscuderia, setNuevoNombreEscuderia] = useState("");
-
-  const [pilotoEditando, setPilotoEditando] = useState<number | null>(null);
-  const [nuevoNombrePiloto, setNuevoNombrePiloto] = useState("");
-  const [nuevoApellidoPiloto, setNuevoApellidoPiloto] = useState("");
-  const [nuevaFechaNacimientoPiloto, setNuevaFechaNacimientoPiloto] = useState("");
-  const [nuevoTitularPiloto, setNuevoTitularPiloto] = useState(true);
-  const [nuevaFotoPiloto, setNuevaFotoPiloto] = useState<string | undefined>(undefined);
-
-  const { addToast } = useToast();
-
-  // 🔹 Manejo de imagen en base64
-  const handleFotoChange = (e: ChangeEvent<HTMLInputElement>, setFoto: (value: string | undefined) => void) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setFoto(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  // 🔹 Cargar escuderías y pilotos
+  // --- Cargar escuderías ---
   useEffect(() => {
+    const fetchEscuderias = async () => {
+      const { data, error } = await supabase
+        .from("Escuderia")
+        .select("id_escuderia, nombre");
+      if (data) setListaEscuderias(data);
+      if (error) console.error(error);
+    };
     fetchEscuderias();
   }, []);
 
-  async function fetchEscuderias() {
-    const { data, error } = await supabase
-      .from("Escuderia")
-      .select("*, Piloto(*)")
-      .order("id_escuderia");
+  // --- Cargar pilotos ---
+  useEffect(() => {
+    const fetchPilotos = async () => {
+      const { data, error } = await supabase
+        .from("Piloto")
+        .select("*")
+        .eq("activo", true)
+        .order("id_piloto");
+      if (data) setListaPilotos(data);
+      if (error) console.error(error);
+    };
+    fetchPilotos();
+  }, []);
+
+  // --- Seleccionar escudería ---
+  const handleSelectEscuderia = (item: string) => {
+    const escuderia = listaEscuderias.find(e => e.nombre === item) || null;
+    setEscuderiaSeleccionada(escuderia);
+    setMostrarFormulario(false);
+    setPilotoSeleccionado(null);
+    setTitular(true);
+    setNuevaFoto(undefined);
+  };
+
+  // --- Seleccionar piloto ---
+  const handleSelectPiloto = (item: string) => {
+    const piloto = listaPilotos.find(p => p.nombre === item) || null;
+    setPilotoSeleccionado(piloto);
+  };
+
+  // --- Subir imagen en base64 ---
+  const handleFotoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setNuevaFoto(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // --- Guardar relación en DB ---
+  const handleGuardar = async () => {
+    if (!escuderiaSeleccionada || !pilotoSeleccionado) return;
+
+    const { error } = await supabase.from("Tiene").insert({
+      id_escuderia: escuderiaSeleccionada.id_escuderia,
+      id_piloto: pilotoSeleccionado.id_piloto,
+      titular: titular,
+      foto: nuevaFoto ?? pilotoSeleccionado.foto ?? null,
+    });
 
     if (error) {
-      console.log(error);
-      addToast("Error al cargar escuderías");
-    } else if (data) {
-      setEscuderias(data);
+      console.error("Error al guardar:", error);
+    } else {
+      console.log("Piloto agregado a escudería");
+      setMostrarFormulario(false);
+      setPilotoSeleccionado(null);
+      setTitular(true);
+      setNuevaFoto(undefined);
     }
-  }
+  };
 
-  // 🔹 Agregar escudería
-  async function agregarEscuderia() {
-    if (!nombreEscuderia.trim()) return addToast("El nombre no puede estar vacío");
-    const { error } = await supabase.from("Escuderia").insert([{ nombre: nombreEscuderia }]);
-    if (!error) {
-      setNombreEscuderia("");
-      fetchEscuderias();
-      addToast(`Escudería "${nombreEscuderia}" añadida`);
-    }
-  }
+  // --- Crear nueva escudería ---
+  const handleCrearEscuderia = async () => {
+    if (nuevaEscuderia.trim() === "") return;
 
-  // 🔹 Editar escudería
-  async function guardarEdicionEscuderia(id: number) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("Escuderia")
-      .update({ nombre: nuevoNombreEscuderia })
-      .eq("id_escuderia", id);
+      .insert({ nombre: nuevaEscuderia })
+      .select();
 
-    if (!error) {
-      setEscuderiaEditando(null);
-      setNuevoNombreEscuderia("");
-      fetchEscuderias();
-      addToast("Escudería actualizada");
+    if (error) {
+      console.error("Error al crear escudería:", error);
+    } else if (data) {
+      console.log("Escudería creada:", data[0]);
+      setListaEscuderias(prev => [...prev, data[0]]);
+      setNuevaEscuderia("");
     }
-  }
-
-  // 🔹 Agregar piloto
-  async function agregarPiloto(escuderiaId: number) {
-    if (!nombrePiloto.trim() || !apellidoPiloto.trim() || !fechaNacimientoPiloto) {
-      return addToast("Nombre, apellido y fecha de nacimiento son obligatorios");
-    }
-
-    const nuevo: Omit<Piloto, "id_piloto"> = {
-      nombre: nombrePiloto,
-      apellido: apellidoPiloto,
-      fecha_nacimiento: fechaNacimientoPiloto,
-      titular: titularPiloto,
-      escuderia_id: escuderiaId,
-      foto: fotoPiloto,
-    };
-
-    const { error } = await supabase.from("Piloto").insert([nuevo]);
-    if (!error) {
-      setNombrePiloto("");
-      setApellidoPiloto("");
-      setFechaNacimientoPiloto("");
-      setTitularPiloto(true);
-      setFotoPiloto(undefined);
-      setEscuderiaSeleccionada(null);
-      fetchEscuderias();
-      addToast("Piloto añadido");
-    }
-  }
-
-  // 🔹 Editar piloto
-  async function guardarEdicionPiloto(p: Piloto) {
-    const { error } = await supabase
-      .from("Piloto")
-      .update({
-        nombre: nuevoNombrePiloto,
-        apellido: nuevoApellidoPiloto,
-        fecha_nacimiento: nuevaFechaNacimientoPiloto,
-        titular: nuevoTitularPiloto,
-        foto: nuevaFotoPiloto ?? p.foto,
-      })
-      .eq("id_piloto", p.id_piloto);
-
-    if (!error) {
-      setPilotoEditando(null);
-      fetchEscuderias();
-      addToast("Piloto actualizado");
-    }
-  }
-
-  // 🔹 Eliminar piloto
-  async function eliminarPiloto(p: Piloto) {
-    const { error } = await supabase.from("Piloto").delete().eq("id_piloto", p.id_piloto);
-    if (!error) {
-      fetchEscuderias();
-      addToast(`Piloto "${p.nombre}" eliminado`);
-    }
-  }
-
-  // 🔹 Eliminar escudería
-  async function eliminarEscuderia(id: number) {
-    const { error } = await supabase.from("Escuderia").delete().eq("id_escuderia", id);
-    if (!error) {
-      fetchEscuderias();
-      addToast("Escudería eliminada");
-    }
-  }
+  };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Gestión de Escuderías y Pilotos</h1>
+    <main className="p-10">
+      <h1>Gestión de Perfiles</h1>
 
-      {/* Formulario Escuderías */}
-      <div className="bg-card text-card-foreground p-4 rounded shadow mb-6">
-        <h2 className="font-semibold mb-2">Nueva Escudería</h2>
+      {/* Crear nueva escudería */}
+      <div className="mt-6 flex gap-2 items-center">
         <input
           type="text"
-          value={nombreEscuderia}
-          onChange={(e) => setNombreEscuderia(e.target.value)}
-          placeholder="Nombre de la escudería"
-          className="w-full p-2 border rounded mb-2 bg-input text-foreground"
+          placeholder="Nombre de la nueva escudería"
+          value={nuevaEscuderia}
+          onChange={(e) => setNuevaEscuderia(e.target.value)}
+          className="border p-2 rounded w-64"
         />
         <button
-          onClick={agregarEscuderia}
-          className="bg-primary text-primary-foreground px-4 py-2 rounded hover:opacity-80"
+          onClick={handleCrearEscuderia}
+          className="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700"
         >
-          Añadir Escudería
+          Crear escudería
         </button>
       </div>
 
-      {/* Lista de Escuderías y pilotos */}
-      {escuderias.map((e) => (
-        <div key={e.id_escuderia} className="bg-card text-card-foreground shadow p-4 rounded mb-4">
-          <div className="flex justify-between items-center mb-2">
-            {escuderiaEditando === e.id_escuderia ? (
-              <div className="flex w-full gap-2">
-                <input
-                  type="text"
-                  value={nuevoNombreEscuderia}
-                  onChange={(ev) => setNuevoNombreEscuderia(ev.target.value)}
-                  placeholder="Nuevo nombre"
-                  className="flex-1 p-2 border rounded bg-input text-foreground"
-                />
+      {/* Selección de escudería */}
+      <div className="mt-6">
+        <GranPrixDropdown
+          label="Seleccione una escudería"
+          listaGP={listaEscuderias.map(it => it.nombre)}
+          setSelected={handleSelectEscuderia}
+        />
+      </div>
+
+      {/* Botón para abrir el formulario */}
+      {escuderiaSeleccionada && !mostrarFormulario && (
+        <div className="mt-4">
+          <button
+            onClick={() => setMostrarFormulario(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Añadir piloto
+          </button>
+        </div>
+      )}
+
+      {/* Formulario de edición */}
+      {mostrarFormulario && (
+        <div className="mt-4">
+          <h2 className="text-lg mb-2">Agregar piloto a {escuderiaSeleccionada?.nombre}</h2>
+
+          <GranPrixDropdown
+            label="Seleccione un piloto"
+            listaGP={listaPilotos.map(p => p.nombre)}
+            setSelected={handleSelectPiloto}
+          />
+
+          {pilotoSeleccionado && (
+            <div className="mt-4">
+              <label className="block mb-1">Condición</label>
+              <div className="flex gap-4">
+                <label>
+                  <input
+                    type="radio"
+                    checked={titular}
+                    onChange={() => setTitular(true)}
+                  />
+                  Titular
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    checked={!titular}
+                    onChange={() => setTitular(false)}
+                  />
+                  Suplente
+                </label>
+              </div>
+
+              <div className="mt-4">
+                <label className="block mb-1">Foto (opcional)</label>
+                <input type="file" accept="image/*" onChange={handleFotoChange} />
+                {nuevaFoto && (
+                  <div className="mt-2">
+                    <Image
+                      src={nuevaFoto}
+                      alt="Foto piloto"
+                      width={100}
+                      height={100}
+                      className="rounded"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex gap-3">
                 <button
-                  onClick={() => guardarEdicionEscuderia(e.id_escuderia)}
-                  className="bg-green-600 text-white px-3 py-1 rounded"
+                  onClick={handleGuardar}
+                  className="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700"
                 >
                   Guardar
                 </button>
                 <button
-                  onClick={() => setEscuderiaEditando(null)}
-                  className="bg-gray-500 text-white px-3 py-1 rounded"
+                  onClick={() => setMostrarFormulario(false)}
+                  className="bg-gray-400 text-white px-3 py-2 rounded hover:bg-gray-500"
                 >
                   Cancelar
                 </button>
               </div>
-            ) : (
-              <>
-                <h3 className="text-lg font-bold">{e.nombre}</h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setEscuderiaEditando(e.id_escuderia);
-                      setNuevoNombreEscuderia(e.nombre);
-                    }}
-                    className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => eliminarEscuderia(e.id_escuderia)}
-                    className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Lista de pilotos */}
-          <ul className="mb-3">
-            {e.pilotos?.map((p) => (
-              <li key={p.id_piloto} className="flex justify-between items-center bg-muted p-2 rounded mb-1">
-                {pilotoEditando === p.id_piloto ? (
-                  <div className="flex flex-col w-full gap-2">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={nuevoNombrePiloto}
-                        onChange={(ev) => setNuevoNombrePiloto(ev.target.value)}
-                        placeholder="Nombre"
-                        className="flex-1 p-2 border rounded bg-input text-foreground"
-                      />
-                      <input
-                        type="text"
-                        value={nuevoApellidoPiloto}
-                        onChange={(ev) => setNuevoApellidoPiloto(ev.target.value)}
-                        placeholder="Apellido"
-                        className="flex-1 p-2 border rounded bg-input text-foreground"
-                      />
-                    </div>
-                    <input
-                      type="date"
-                      value={nuevaFechaNacimientoPiloto}
-                      onChange={(ev) => setNuevaFechaNacimientoPiloto(ev.target.value)}
-                      className="p-2 border rounded bg-input text-foreground"
-                    />
-                    <select
-                      value={nuevoTitularPiloto ? "Titular" : "Suplente"}
-                      onChange={(ev) => setNuevoTitularPiloto(ev.target.value === "Titular")}
-                      className="p-2 border rounded bg-input text-foreground"
-                    >
-                      <option value="Titular">Titular</option>
-                      <option value="Suplente">Suplente</option>
-                    </select>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFotoChange(e, setNuevaFotoPiloto)}
-                      className="p-1"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => guardarEdicionPiloto(p)}
-                        className="bg-green-600 text-white px-3 py-1 rounded"
-                      >
-                        Guardar
-                      </button>
-                      <button
-                        onClick={() => setPilotoEditando(null)}
-                        className="bg-gray-500 text-white px-3 py-1 rounded"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex justify-between items-center w-full">
-                    <div className="flex items-center gap-2">
-                      {p.foto && (
-                        <img src={p.foto} alt="foto piloto" className="w-10 h-10 rounded-full object-cover" />
-                      )}
-                      <span>
-                        {p.nombre} {p.apellido} ({p.titular ? "Titular" : "Suplente"})
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setPilotoEditando(p.id_piloto);
-                          setNuevoNombrePiloto(p.nombre);
-                          setNuevoApellidoPiloto(p.apellido);
-                          setNuevaFechaNacimientoPiloto(p.fecha_nacimiento);
-                          setNuevoTitularPiloto(p.titular);
-                          setNuevaFotoPiloto(p.foto);
-                        }}
-                        className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => eliminarPiloto(p)}
-                        className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-
-          {/* Formulario para agregar piloto */}
-          {escuderiaSeleccionada === e.id_escuderia ? (
-            <div className="bg-secondary text-secondary-foreground p-3 rounded">
-              <input
-                type="text"
-                value={nombrePiloto}
-                onChange={(ev) => setNombrePiloto(ev.target.value)}
-                placeholder="Nombre"
-                className="w-full p-2 border rounded mb-2 bg-input text-foreground"
-              />
-              <input
-                type="text"
-                value={apellidoPiloto}
-                onChange={(ev) => setApellidoPiloto(ev.target.value)}
-                placeholder="Apellido"
-                className="w-full p-2 border rounded mb-2 bg-input text-foreground"
-              />
-              <input
-                type="date"
-                value={fechaNacimientoPiloto}
-                onChange={(ev) => setFechaNacimientoPiloto(ev.target.value)}
-                className="w-full p-2 border rounded mb-2 bg-input text-foreground"
-              />
-              <select
-                value={titularPiloto ? "Titular" : "Suplente"}
-                onChange={(ev) => setTitularPiloto(ev.target.value === "Titular")}
-                className="w-full p-2 border rounded mb-2 bg-input text-foreground"
-              >
-                <option value="Titular">Titular</option>
-                <option value="Suplente">Suplente</option>
-              </select>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleFotoChange(e, setFotoPiloto)}
-                className="mb-2"
-              />
-              <button
-                onClick={() => agregarPiloto(e.id_escuderia)}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                Guardar Piloto
-              </button>
             </div>
-          ) : (
-            <button
-              onClick={() => setEscuderiaSeleccionada(e.id_escuderia)}
-              className="bg-primary text-primary-foreground px-3 py-1 rounded hover:opacity-80"
-            >
-              Añadir Piloto
-            </button>
           )}
         </div>
-      ))}
-    </div>
+      )}
+    </main>
   );
 }
