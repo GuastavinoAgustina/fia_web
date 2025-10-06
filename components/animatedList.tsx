@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useRef, useState, useEffect, ReactNode, MouseEventHandler, UIEvent } from 'react';
-import { motion, useInView } from 'motion/react';
+import { motion, useInView } from 'framer-motion';
 
 interface AnimatedItemProps {
   children: ReactNode;
