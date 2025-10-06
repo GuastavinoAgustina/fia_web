@@ -15,129 +15,130 @@ export default function Home() {
   const [listaCarreras, setListaCarreras] = useState<Carrera[]>([]);
   const [listaPilotos, setListaPilotos] = useState<Piloto[]>([]);
   const [listaPilotosOriginal, setListaPilotosOriginal] = useState<Piloto[]>([]);
-  var copiaListaPilotos: Piloto[];
-type Piloto = {
-  id_piloto: number;
-  nombre: string;
-  puntos: number;
-}
 
-type Carrera = {
-  id_carrera: number;
-  nombre:string;
-}
-
-type Categoria = {
-  id_categoria:number;
-  nombre:string
-}
-
-useEffect(() => {
-  async function fetchCategorias() {
-    const { data: categorias, error } = await supabase
-      .from("Categoria")
-      .select('nombre, id_categoria');
-    if (categorias) {
-      setListaCategorias(categorias.map((it: any) => ( 
-        {
-          id_categoria: it.id_categoria,
-          nombre: it.nombre,
-        }
-      )));
-    }
+  type Piloto = {
+    id_piloto: number;
+    nombre: string;
+    puntos: number;
   }
-  fetchCategorias();
-}, []);
+
+  type Carrera = {
+    id_carrera: number;
+    nombre: string;
+  }
+
+  type Categoria = {
+    id_categoria: number;
+    nombre: string
+  }
+
+  useEffect(() => {
+    async function fetchCategorias() {
+      const { data: categorias, error } = await supabase
+        .from("Categoria")
+        .select('nombre, id_categoria');
+      if (error) 
+        console.error(error);
+      if (categorias) {
+        setListaCategorias(categorias.map((it: any) => (
+          {
+            id_categoria: it.id_categoria,
+            nombre: it.nombre,
+          }
+        )));
+      }
+    }
+    fetchCategorias();
+  }, []);
 
 
   const handleSelectCategoria = async (item: string) => {
     setSelectedCarrera(null);
-    const categoriaSeleccionada = listaCategorias.find((categoria)=> categoria.nombre === item)
-    if(categoriaSeleccionada)
+    const categoriaSeleccionada = listaCategorias.find((categoria) => categoria.nombre === item)
+    if (categoriaSeleccionada)
       setSelectedCategoria(categoriaSeleccionada);
     const { data, error } = await supabase
       .from('Carrera')
       .select('id_carrera, nombre')
       .eq('id_categoria', categoriaSeleccionada?.id_categoria)
-    if(error)
-        console.log(error)
+    if (error)
+      console.error(error)
     if (data) {
       setListaCarreras(data.map((it: any) => (
         {
-          id_carrera: it.id_carrera, 
-          nombre: it.nombre  ,   
-          }
+          id_carrera: it.id_carrera,
+          nombre: it.nombre,
+        }
       )));
-      console.log(listaCarreras)
     }
-      
+
   };
 
-    const handleSelectCarrera = async (item: String) => {
-      const carreraSeleccionada = listaCarreras.find((carrera)=> carrera.nombre === item)
-      setSelectedCarrera(carreraSeleccionada!)
-      console.log(carreraSeleccionada)
-      const { data, error } = await supabase
-        .from('Corre')
-        .select(`
+  const handleSelectCarrera = async (item: String) => {
+    const carreraSeleccionada = listaCarreras.find((carrera) => carrera.nombre === item)
+    setSelectedCarrera(carreraSeleccionada!)
+    const { data, error } = await supabase
+      .from('Corre')
+      .select(`
           id_piloto,
           puntaje,
           Piloto (
             nombre
           )
         `)
-        .eq('id_carrera', carreraSeleccionada?.id_carrera);
-      if(data){
-        const pilotos = data.map((it: any) => ({
-          id_piloto: it.id_piloto, 
-          nombre: it.Piloto?.nombre  ,
-          puntos: it.puntaje     
-          })).sort((a,b) => b.puntos - a.puntos);
-          setListaPilotos(pilotos);
-          setListaPilotosOriginal(pilotos.map(p => ({ ...p })));
-        }
-    console.log("Selected carrera:", item);
+      .eq('id_carrera', carreraSeleccionada?.id_carrera);
+    if (error)
+      console.error(error);
+    if (data) {
+      const pilotos = data.map((it: any) => ({
+        id_piloto: it.id_piloto,
+        nombre: it.Piloto?.nombre,
+        puntos: it.puntaje
+      })).sort((a, b) => b.puntos - a.puntos);
+      setListaPilotos(pilotos);
+      setListaPilotosOriginal(pilotos.map(p => ({ ...p })));
+    }
   };
 
-function handlePuntosChange(p: Piloto, nuevoValor: number) {
-  setListaPilotos(listaPilotos.map(piloto =>
-    piloto.id_piloto === p.id_piloto ? { ...piloto, puntos: nuevoValor } : piloto
-  ));
-}
+  function handlePuntosChange(p: Piloto, nuevoValor: number) {
+    setListaPilotos(listaPilotos.map(piloto =>
+      piloto.id_piloto === p.id_piloto ? { ...piloto, puntos: nuevoValor } : piloto
+    ));
+  }
 
-  const cargarPuntosEnDB = ()=>{
+  const cargarPuntosEnDB = () => {
     setListaPilotosOriginal(listaPilotos.map(p => ({ ...p })))
-    listaPilotos.forEach(async piloto =>{
+    listaPilotos.forEach(async piloto => {
       const { data, error } = await supabase
-          .from('Corre')                  
-          .update({ puntaje: piloto.puntos })   
-          .eq('id_piloto', piloto.id_piloto)     
-          .eq('id_carrera', selectedCarrera?.id_carrera); 
-        if (error) {
-          console.error('Error updating puntaje:', error);
-        } else {
-          console.log('Updated data:', data);
-        }
+        .from('Corre')
+        .update({ puntaje: piloto.puntos })
+        .eq('id_piloto', piloto.id_piloto)
+        .eq('id_carrera', selectedCarrera?.id_carrera);
+      if (error) {
+        console.error('Error updating puntaje:', error);
+      } else {
+        console.log('Updated data:', data);
       }
+    }
     );
-  } 
+  }
 
   return (
     <main className="p-10 min-h-screen flex flex-col items-center">
-            <div className="w-full max-w-xl p-6 rounded-2xl shadow-lg space-y-6">
-                {/* Encabezado */}
-                <div className="flex justify-between items-center">
-                    <h1 className="text-2xl font-bold">Gestión de puntos</h1>
-                    <Link href="/" className="text-blue-600 hover:underline">
-                        Página principal
-                    </Link>
-                </div>
-              </div>
+      <div className="w-full max-w-xl p-6 rounded-2xl shadow-lg space-y-6">
+        {/* Encabezado */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Gestión de puntos</h1>
+          <Link href="/" className="text-blue-600 hover:underline">
+            Página principal
+          </Link>
+        </div>
+      </div>
       <div className="flex flex-col items-center justify-center">
         <h1 className="mb-1 mt-3"> Seleccione una categoría</h1>
         <GranPrixDropdown
           label="Seleccione una categoría"
-          listaGP={listaCategorias.map(it=>it.nombre)}
+          listaGP={listaCategorias.map(it => it.nombre)}
           setSelected={handleSelectCategoria}
         />
       </div>
@@ -146,20 +147,11 @@ function handlePuntosChange(p: Piloto, nuevoValor: number) {
           <h1 className="mb-1">Seleccione una carrera</h1>
           <GranPrixDropdown
             label="Seleccione carrera"
-            listaGP={listaCarreras.map(it=>it.nombre)} 
+            listaGP={listaCarreras.map(it => it.nombre)}
             setSelected={handleSelectCarrera}
           />
         </div>
       )}
-      {/*selectedCarrera && (
-        <div className="flex flex-col items-center justify-center mt-6">
-        <h2 className="mb-1">Añadir piloto clasificado</h2>
-          <Autocomplete 
-            items={listaPilotos.map((it) => it.nombre)}
-            setSelected={handleSelectPiloto}
-            />
-        </div>
-      )*/}
 
       {listaPilotos.length > 0 && (
         <div>
@@ -185,6 +177,7 @@ function handlePuntosChange(p: Piloto, nuevoValor: number) {
               </li>
             ))}
           </ul>
+
           <div className="flex justify-between w-96 mt-2">
             <button
               onClick={() => cargarPuntosEnDB()}
