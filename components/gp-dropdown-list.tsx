@@ -1,14 +1,15 @@
 "use client"; 
 
 import { useState } from "react";
-import AnimatedList from "./AnimatedList";
+import AnimatedList from "./animatedList";
 
 interface DropdownProps {
   label: string; 
-  listaGP: string[];            
+  listaGP: string[];     
+  setSelected: (name:string) => void;       
 }
 
-export default function GranPrixDropdown({ label , listaGP}: DropdownProps) {
+export default function GranPrixDropdown({ label , listaGP, setSelected}: DropdownProps) {
   const [open, setOpen] = useState(false);
   const [selectedLabel, setSelectedLabel] = useState(label);
 
@@ -30,6 +31,8 @@ export default function GranPrixDropdown({ label , listaGP}: DropdownProps) {
                 console.log(item, index)
                 setSelectedLabel(item)
                 setOpen(!open)
+              
+                setSelected(item)
             }
           }
           showGradients={true}
