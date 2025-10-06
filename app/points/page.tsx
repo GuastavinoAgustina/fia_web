@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import GranPrixDropdown from "@/components/gp-dropdown-list";
 import { createClient } from "@supabase/supabase-js";
 import Autocomplete from "@/components/autocomplete";
+import Link from "next/link";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!)
 
@@ -123,9 +124,17 @@ function handlePuntosChange(p: Piloto, nuevoValor: number) {
 
   return (
     <main className="p-10 min-h-screen flex flex-col items-center">
-      <title>Asignación de puntos</title>
+            <div className="w-full max-w-xl p-6 rounded-2xl shadow-lg space-y-6">
+                {/* Encabezado */}
+                <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-bold">Gestión de puntos</h1>
+                    <Link href="/" className="text-blue-600 hover:underline">
+                        Página principal
+                    </Link>
+                </div>
+              </div>
       <div className="flex flex-col items-center justify-center">
-        <h1 className="mb-1"> Seleccione una categoría</h1>
+        <h1 className="mb-1 mt-3"> Seleccione una categoría</h1>
         <GranPrixDropdown
           label="Seleccione una categoría"
           listaGP={listaCategorias.map(it=>it.nombre)}
