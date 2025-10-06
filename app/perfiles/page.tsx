@@ -168,7 +168,7 @@ export default function PerfilesPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Gestión de Escuderías y Pilotos</h1>
+      <h1 className="text-2xl font-bold mb-6">Gestión de perfiles</h1>
 
       {/* Formulario Escuderías */}
       <div className="bg-card text-card-foreground p-4 rounded shadow mb-6">

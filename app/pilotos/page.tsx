@@ -167,7 +167,7 @@ export default function PilotosPage() {
             <div className="w-full max-w-xl p-6 rounded-2xl shadow-lg space-y-6">
                 {/* Encabezado */}
                 <div className="flex justify-between items-center">
-                    <h1 className="text-2xl font-bold">Gestión de Pilotos</h1>
+                    <h1 className="text-2xl font-bold">Gestión de pilotos</h1>
                     <Link href="/" className="text-blue-600 hover:underline">
                         Página principal
                     </Link>
