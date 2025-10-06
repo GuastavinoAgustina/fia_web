@@ -104,8 +104,8 @@ function handlePuntosChange(p: Piloto, nuevoValor: number) {
   ));
 }
 
-
   const cargarPuntosEnDB = ()=>{
+    setListaPilotosOriginal(listaPilotos.map(p => ({ ...p })))
     listaPilotos.forEach(async piloto =>{
       const { data, error } = await supabase
           .from('Corre')                  
@@ -118,7 +118,7 @@ function handlePuntosChange(p: Piloto, nuevoValor: number) {
           console.log('Updated data:', data);
         }
       }
-    )
+    );
   } 
 
   return (
