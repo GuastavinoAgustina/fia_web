@@ -38,6 +38,7 @@ const Autocomplete: React.FC<AutocompleteProps> = ({ items, setSelected }) => {
         value={query}
         onChange={handleChange}
         placeholder="Buscar piloto..."
+        className="pl-1 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
       />
       {filteredItems.length > 0 && (
         <ul className="autocomplete-list">
