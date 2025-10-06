@@ -7,6 +7,9 @@ import { useToast } from "@/components/toast-provider"
 
 const supabase = createClient()
 
+// Force dynamic rendering to avoid build-time Supabase calls
+export const dynamic = 'force-dynamic';
+
 type Piloto = {
     id_piloto: number
     nombre: string

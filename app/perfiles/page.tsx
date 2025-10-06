@@ -4,7 +4,7 @@ import { useState, useEffect, ChangeEvent } from "react";
 import { createClient } from "@supabase/supabase-js";
 import GranPrixDropdown from "@/components/gp-dropdown-list";
 import Image from "next/image";
-
+export const dynamic = 'force-dynamic';
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!

@@ -6,6 +6,9 @@ import Autocomplete from "@/components/autocomplete";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!)
 
+// Force dynamic rendering to avoid build-time Supabase calls
+export const dynamic = 'force-dynamic';
+
 //TODO manejar errores en las consultas a la DB. También se prodría notificar cuando los datos se guardan exitosamente
 export default function Home() {
   const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
