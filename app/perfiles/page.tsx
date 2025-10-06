@@ -4,6 +4,7 @@ import { useState, useEffect, ChangeEvent } from "react";
 import { createClient } from "@supabase/supabase-js";
 import GranPrixDropdown from "@/components/gp-dropdown-list";
 import Image from "next/image";
+import Link from "next/link";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -194,8 +195,13 @@ export default function PerfilesPage() {
   return (
     <div className="flex justify-center items-start min-h-screen">
       <main className="p-10">
-        <h1>Gestión de Perfiles</h1>
-
+        {/* Encabezado */}
+        <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Gestión de pilotos</h1>
+            <Link href="/" className="text-blue-600 hover:underline">
+                Página principal
+            </Link>
+        </div>
         {/* Crear nueva escudería */}
         <div className="mt-6 flex gap-2 items-center">
           <input

@@ -3,11 +3,9 @@ import { useEffect, useState } from "react";
 import GranPrixDropdown from "@/components/gp-dropdown-list";
 import { createClient } from "@supabase/supabase-js";
 import Autocomplete from "@/components/autocomplete";
+import Link from "next/link";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!)
-
-// Force dynamic rendering to avoid build-time Supabase calls
-export const dynamic = 'force-dynamic';
 
 //TODO manejar errores en las consultas a la DB. También se prodría notificar cuando los datos se guardan exitosamente
 export default function Home() {
@@ -16,159 +14,149 @@ export default function Home() {
   const [listaCategorias, setListaCategorias] = useState<Categoria[]>([]);
   const [listaCarreras, setListaCarreras] = useState<Carrera[]>([]);
   const [listaPilotos, setListaPilotos] = useState<Piloto[]>([]);
-  const [listaPilotosAPuntear, setListaPilotosAPuntear] = useState<Piloto[]>([]);
-  
-type Piloto = {
-  id_piloto: number;
-  nombre: string;
-  puntos: number;
-}
+  const [listaPilotosOriginal, setListaPilotosOriginal] = useState<Piloto[]>([]);
 
-type Carrera = {
-  id_carrera: number;
-  nombre:string;
-}
-
-type Categoria = {
-  id_categoria:number;
-  nombre:string
-}
-
-useEffect(() => {
-  async function fetchCategorias() {
-    const { data: categorias, error } = await supabase
-      .from("Categoria")
-      .select('nombre, id_categoria');
-    if (categorias) {
-      setListaCategorias(categorias.map((it: any) => ( 
-        {
-          id_categoria: it.id_categoria,
-          nombre: it.nombre,
-        }
-      )));
-    }
+  type Piloto = {
+    id_piloto: number;
+    nombre: string;
+    puntos: number;
   }
-  fetchCategorias();
-}, []);
+
+  type Carrera = {
+    id_carrera: number;
+    nombre: string;
+  }
+
+  type Categoria = {
+    id_categoria: number;
+    nombre: string
+  }
+
+  useEffect(() => {
+    async function fetchCategorias() {
+      const { data: categorias, error } = await supabase
+        .from("Categoria")
+        .select('nombre, id_categoria');
+      if (error) 
+        console.error(error);
+      if (categorias) {
+        setListaCategorias(categorias.map((it: any) => (
+          {
+            id_categoria: it.id_categoria,
+            nombre: it.nombre,
+          }
+        )));
+      }
+    }
+    fetchCategorias();
+  }, []);
 
 
   const handleSelectCategoria = async (item: string) => {
     setSelectedCarrera(null);
-    const categoriaSeleccionada = listaCategorias.find((categoria)=> categoria.nombre === item)
-    if(categoriaSeleccionada)
+    const categoriaSeleccionada = listaCategorias.find((categoria) => categoria.nombre === item)
+    if (categoriaSeleccionada)
       setSelectedCategoria(categoriaSeleccionada);
     const { data, error } = await supabase
       .from('Carrera')
       .select('id_carrera, nombre')
       .eq('id_categoria', categoriaSeleccionada?.id_categoria)
-    if(error)
-        console.log(error)
+    if (error)
+      console.error(error)
     if (data) {
       setListaCarreras(data.map((it: any) => (
         {
-          id_carrera: it.id_carrera, 
-          nombre: it.nombre  ,   
-          }
-      )));
-      console.log(listaCarreras)
-    }
-      
-  };
-
-    const handleSelectCarrera = async (item: String) => {
-      setListaPilotosAPuntear([])
-      const carreraSeleccionada = listaCarreras.find((carrera)=> carrera.nombre === item)
-      setSelectedCarrera(carreraSeleccionada!)
-      console.log(carreraSeleccionada)
-      const { data, error } = await supabase
-        .from('Piloto')
-        .select(`
-          *,
-          ...Corre!inner()
-        `)
-        .eq('Corre.id_carrera', carreraSeleccionada?.id_carrera);
-      if(data)
-        setListaPilotos(data.map((it: any) => ({
-          id_piloto: it.id_piloto, 
-          nombre: it.nombre  ,
-          puntos: it.puntos     
-          }))
-        );
-    console.log("Selected carrera:", item);
-  };
-
-  const handleSelectPiloto = (item: string) => {
-    const pilotoSeleccionado = listaPilotos.find(piloto => piloto.nombre === item);
-    if (pilotoSeleccionado) {
-      setListaPilotosAPuntear([...listaPilotosAPuntear, pilotoSeleccionado]);
-      setListaPilotos(listaPilotos.filter(piloto => piloto.nombre !== item));
-    }
-    console.log(pilotoSeleccionado)
-  }
-  
-  const eliminarPilotoDeListaAPuntear = (item: Piloto) => {
-    setListaPilotosAPuntear(listaPilotosAPuntear.filter(piloto => piloto.id_piloto !== item.id_piloto));
-    setListaPilotos([...listaPilotos, item]);
-  }
-
-
-  function handlePuntosChange(id_piloto: number, nuevoValor: number) { //TODO controlar que el valor ingresado es válido
-  setListaPilotosAPuntear(listaPilotosAPuntear.map(piloto =>
-    piloto.id_piloto === id_piloto ? { ...piloto, puntos: nuevoValor } : piloto
-  ));
-}
-
-
-  const cargarPuntosEnDB = ()=>{
-    listaPilotosAPuntear.forEach(async piloto =>{
-      const { data, error } = await supabase
-          .from('Corre')                  
-          .update({ puntaje: piloto.puntos })   
-          .eq('id_piloto', piloto.id_piloto)     
-          .eq('id_carrera', selectedCarrera?.id_carrera); 
-        if (error) {
-          console.error('Error updating puntaje:', error);
-        } else {
-          console.log('Updated data:', data);
+          id_carrera: it.id_carrera,
+          nombre: it.nombre,
         }
+      )));
+    }
+
+  };
+
+  const handleSelectCarrera = async (item: String) => {
+    const carreraSeleccionada = listaCarreras.find((carrera) => carrera.nombre === item)
+    setSelectedCarrera(carreraSeleccionada!)
+    const { data, error } = await supabase
+      .from('Corre')
+      .select(`
+          id_piloto,
+          puntaje,
+          Piloto (
+            nombre
+          )
+        `)
+      .eq('id_carrera', carreraSeleccionada?.id_carrera);
+    if (error)
+      console.error(error);
+    if (data) {
+      const pilotos = data.map((it: any) => ({
+        id_piloto: it.id_piloto,
+        nombre: it.Piloto?.nombre,
+        puntos: it.puntaje
+      })).sort((a, b) => b.puntos - a.puntos);
+      setListaPilotos(pilotos);
+      setListaPilotosOriginal(pilotos.map(p => ({ ...p })));
+    }
+  };
+
+  function handlePuntosChange(p: Piloto, nuevoValor: number) {
+    setListaPilotos(listaPilotos.map(piloto =>
+      piloto.id_piloto === p.id_piloto ? { ...piloto, puntos: nuevoValor } : piloto
+    ));
+  }
+
+  const cargarPuntosEnDB = () => {
+    setListaPilotosOriginal(listaPilotos.map(p => ({ ...p })))
+    listaPilotos.forEach(async piloto => {
+      const { data, error } = await supabase
+        .from('Corre')
+        .update({ puntaje: piloto.puntos })
+        .eq('id_piloto', piloto.id_piloto)
+        .eq('id_carrera', selectedCarrera?.id_carrera);
+      if (error) {
+        console.error('Error updating puntaje:', error);
+      } else {
+        console.log('Updated data:', data);
       }
-    )
-  } 
+    }
+    );
+  }
 
-
- // {categorySelected && <GranPrixDropdown label="Seleccione carrera" listaGP={} setSelected={}/>}
   return (
-    <main className="p-10">
-      <h1> Seleccione una categoría</h1>
-      <GranPrixDropdown
-        label="Seleccione una categoría"
-        listaGP={listaCategorias.map(it=>it.nombre)}
-        setSelected={handleSelectCategoria}
-      />
+    <main className="p-10 min-h-screen flex flex-col items-center">
+      <div className="w-full max-w-xl p-6 rounded-2xl space-y-6">
+        {/* Encabezado */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Gestión de puntos</h1>
+          <Link href="/" className="text-blue-600 hover:underline">
+            Página principal
+          </Link>
+        </div>
+      </div>
+      <div className="flex flex-col items-center justify-center">
+        <h1 className="mb-1 mt-3"> Seleccione una categoría</h1>
+        <GranPrixDropdown
+          label="Seleccione una categoría"
+          listaGP={listaCategorias.map(it => it.nombre)}
+          setSelected={handleSelectCategoria}
+        />
+      </div>
       {selectedCategoria && (
-        <div className="mt-6">
-          <h2>Seleccione una carrera</h2>
+        <div className="flex flex-col items-center justify-center mt-6">
+          <h1 className="mb-1">Seleccione una carrera</h1>
           <GranPrixDropdown
             label="Seleccione carrera"
-            listaGP={listaCarreras.map(it=>it.nombre)} 
+            listaGP={listaCarreras.map(it => it.nombre)}
             setSelected={handleSelectCarrera}
           />
         </div>
       )}
-      {selectedCarrera && (
-        <div className="mt-6">
-        <h2>Añadir piloto clasificado</h2>
-          <Autocomplete 
-            items={listaPilotos.map((it) => it.nombre)}
-            setSelected={handleSelectPiloto}
-            />
-        </div>
-      )}
 
-      {listaPilotosAPuntear.length > 0 && (
+      {listaPilotos.length > 0 && (
         <div>
-          <ul className="mb-3">
-            {listaPilotosAPuntear?.map((p) => (
+          <ul className="mb-3 mt-4">
+            {listaPilotos?.map((p) => (
               <li key={p.id_piloto} className="flex justify-between items-center bg-muted p-2 rounded mb-1 w-96">
                 <div className="flex justify-between items-center w-full">
                   <div className="flex items-center gap-2">
@@ -176,32 +164,32 @@ useEffect(() => {
                       {p.nombre}
                     </span>
                   </div>
-                  <div>
+                  <div className="flex items-center h-full">
                     <input
                       type="number"
                       min="0"
-                      onChange={e => handlePuntosChange(p.id_piloto, Number(e.target.value))}
-                      className="border px-2 py-1 rounded mb-4 w-16 text-center"
+                      value={p.puntos}
+                      onChange={e => handlePuntosChange(p, Number(e.target.value))}
+                      className="border px-2 py-1 rounded mt-1 mb-1 w-16 text-center"
                     />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => eliminarPilotoDeListaAPuntear(p)}
-                        className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
-          <div className="flex gap-2">
+
+          <div className="flex justify-between w-96 mt-2">
             <button
               onClick={() => cargarPuntosEnDB()}
-              className="bg-green-500 text-white px-2 py-1 rounded hover:bg-red-600"
+              className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
             >
               Guardar Puntaje
+            </button>
+            <button
+              onClick={() => setListaPilotos(listaPilotosOriginal)}
+              className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+            >
+              Resetear
             </button>
           </div>
         </div>
