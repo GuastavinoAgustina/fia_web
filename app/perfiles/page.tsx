@@ -42,7 +42,7 @@ export default function PerfilesPage() {
         .select("id_escuderia, nombre")
         .order("id_escuderia");
       if (data) setListaEscuderias(data);
-      if (error) console.error(error);
+      if (error) console.error(error.message);
     };
     fetchEscuderias();
   }, []);
@@ -56,7 +56,7 @@ export default function PerfilesPage() {
         .eq("activo", true)
         .order("id_piloto");
       if (data) setListaPilotos(data);
-      if (error) console.error(error);
+      if (error) console.error(error.message);
     };
     fetchPilotos();
   }, []);
@@ -86,7 +86,7 @@ export default function PerfilesPage() {
       .select();
 
     if (error) {
-      console.error("Error al crear escudería:", error);
+      console.error("Error al crear escudería:", error.message);
     } else if (data) {
       setListaEscuderias(prev => [...prev, data[0]]);
       setNuevaEscuderia("");
@@ -116,7 +116,7 @@ export default function PerfilesPage() {
       .eq("id_escuderia", escuderiaSeleccionada.id_escuderia);
 
     if (error) {
-      console.error("Error al modificar escudería:", error);
+      console.error("Error al modificar escudería:", error.message);
     } else {
       setListaEscuderias(prev =>
         prev.map(e =>
@@ -145,7 +145,7 @@ export default function PerfilesPage() {
       .eq("id_escuderia", escuderiaSeleccionada.id_escuderia);
 
     if (error) {
-      console.error("Error al eliminar escudería:", error);
+      console.error("Error al eliminar escudería:", error.message);
     } else {
       setListaEscuderias(prev =>
         prev.filter(e => e.id_escuderia !== escuderiaSeleccionada.id_escuderia)
@@ -175,15 +175,14 @@ export default function PerfilesPage() {
   const handleGuardar = async () => {
     if (!escuderiaSeleccionada || !pilotoSeleccionado) return;
 
-    const { error } = await supabase.from("Tiene").insert({
+    const { error } = await supabase.from("PilotoTieneEscuderia").insert({
       id_escuderia: escuderiaSeleccionada.id_escuderia,
       id_piloto: pilotoSeleccionado.id_piloto,
-      titular: titular,
-      foto: nuevaFoto ?? pilotoSeleccionado.foto ?? null,
+      esTitular: titular,
     });
 
     if (error) {
-      console.error("Error al guardar:", error);
+      console.error("Error al guardar:", error.message);
     } else {
       setMostrarFormulario(false);
       setPilotoSeleccionado(null);
