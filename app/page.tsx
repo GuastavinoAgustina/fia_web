@@ -7,7 +7,7 @@ export default function HomePage() {
   return (
     <main className="flex min-h-screen flex-col justify-between items-center px-4 py-8">
       {/* Encabezado arriba */}
-      <h1 className="text-4xl font-bold">Página de gestión Fia-Web</h1>
+      <h1 className="text-4xl font-bold">Página de gestión FIA-Web</h1>
 
       {/* Botones centrados */}
       <div className="flex flex-col gap-6 w-full max-w-xs mb-auto mt-auto">

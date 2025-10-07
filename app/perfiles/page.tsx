@@ -197,7 +197,7 @@ export default function PerfilesPage() {
       <main className="p-10">
         {/* Encabezado */}
         <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Gestión de pilotos</h1>
+            <h1 className="text-2xl font-bold">Gestión de escuderías</h1>
             <Link href="/" className="text-blue-600 hover:underline">
                 Página principal
             </Link>
