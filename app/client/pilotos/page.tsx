@@ -19,10 +19,11 @@ export type Piloto = {
   edad? : number;
   escuderias?: string[];
   titular?: boolean | null;
+  proximaCarrera?: string | null;
 };
 
 //Función para calcular la edad a partir de la fecha de nacimiento
-function calcularEdad(fechaNacimiento: string): number {
+export function calcularEdad(fechaNacimiento: string): number {
   const hoy = new Date();
   const fechaNac = new Date(fechaNacimiento);
   let edad = hoy.getFullYear() - fechaNac.getFullYear();
@@ -33,6 +34,10 @@ function calcularEdad(fechaNacimiento: string): number {
   }
 
   return edad;
+}
+
+export function proximaCarrera(){
+
 }
 
 export default function PilotosPage() {
@@ -66,6 +71,19 @@ export default function PilotosPage() {
 
         if (errorEsc) throw errorEsc;
         
+        const { data: carreras, error: errorCar } = await supabase
+          .from("Carrera")
+          .select("id_carrera, fecha, nombre");
+
+        if (errorCar) throw errorCar;
+        
+
+        const { data: pilotoCorre, error: errorPilcor } = await supabase
+          .from("Corre")
+          .select("id_piloto, id_carrera, id_escuderia");
+
+        if (errorPilcor) throw errorPilcor;
+
         setListaEscuderias(escuderias ?? []);
 
         // Join de pilotos con escuderías a traves de la relacion
@@ -86,12 +104,25 @@ export default function PilotosPage() {
               ? calcularEdad(p.fecha_nacimiento)
               : undefined;
 
+              const carrerasPiloto = pilotoCorre?.filter((c) => c.id_piloto === p.id_piloto) ?? [];
+              const carrerasDetalladas = carrerasPiloto
+                .map((rel) => carreras?.find((c) => c.id_carrera === rel.id_carrera))
+                .filter((c) => c && c.fecha) as { nombre: string; fecha: string }[];
+
+              const hoy = new Date();
+              const proximas = carrerasDetalladas
+                .filter((c) => new Date(c.fecha) > hoy)
+                .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+
+              const proximaCarrera = proximas.length > 0 ? proximas[0].nombre : "Sin próxima carrera";
+
             return {
               ...p,
               edad,
               pais: p.pais,
               escuderias: escuderiasPiloto.length > 0 ? escuderiasPiloto : ["Sin escudería"],
               titular: relacionesPiloto.some((rel) => rel.esTitular) || null,
+              proximaCarrera,
             };
         }) ?? [];
 

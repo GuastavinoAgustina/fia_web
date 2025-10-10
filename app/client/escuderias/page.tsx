@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import EscuderiaCard from "@/components/escuderia-card";
 import { Piloto } from '../pilotos/page'
+import { calcularEdad } from '../pilotos/page'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,17 +51,7 @@ export default function EscuderiasPage() {
           .select("id_piloto, nombre, pais, fecha_nacimiento, foto");
 
         if (errorPil) throw errorPil;
-        
-        const calcularEdad = (fechaNacimiento: string) => {
-          const hoy = new Date();
-          const fechaNac = new Date(fechaNacimiento);
-          let edad = hoy.getFullYear() - fechaNac.getFullYear();
-          const mes = hoy.getMonth() - fechaNac.getMonth();
-          if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) {
-            edad--;
-          }
-          return edad;
-        };
+
 
         const escuderiasConPilotos: Escuderia[] = escuderias.map((esc) => {
           const pilotosDeEsc = relaciones
