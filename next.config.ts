@@ -12,6 +12,15 @@ const nextConfig: NextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
+   images: {
+    domains: ['fvjkhojhpszkhgfxhzgm.supabase.co'],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "img.icons8.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
