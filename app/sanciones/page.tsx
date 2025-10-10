@@ -2,124 +2,30 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import SancionCard from "@/components/sancion-card"; 
+import Image from 'next/image';
+import Link from 'next/link';
+import { FaChevronRight, FaChevronDown } from 'react-icons/fa'; 
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!
 );
 
-// [ ... getEscuderiaColor function remains the same ... ]
-
-/**
- * Función auxiliar para obtener el color de fondo y el color de texto de la escudería.
- * Se basa en los colores visibles en las imágenes.
- * @param nombre Nombre de la escudería
- * @returns {bgColor: string, textColor: string, tableRowEvenColor: string, tableRowOddColor: string, tableHeaderColor: string} Clases de Tailwind CSS para el color.
- */
-const getEscuderiaColor = (nombre: string): {
-  bgColor: string;
-  textColor: string;
-  tableRowEvenColor: string;
-  tableRowOddColor: string;
-  tableHeaderColor: string;
-  tableBorderColor: string;
-} => {
-  const nombreNormalizado = nombre.toLowerCase().trim();
-
-  if (nombreNormalizado.includes("mercedes")) {
-    return {
-      bgColor: "bg-black",
-      textColor: "text-white",
-      tableRowEvenColor: "bg-gray-900", // Más oscuro para filas pares
-      tableRowOddColor: "bg-gray-800",  // Más claro para filas impares
-      tableHeaderColor: "bg-gray-700", // Encabezado de tabla
-      tableBorderColor: "border-gray-600"
-    };
-  }
-  if (nombreNormalizado.includes("red bull")) {
-    return {
-      bgColor: "bg-blue-600",
-      textColor: "text-white",
-      tableRowEvenColor: "bg-blue-800",
-      tableRowOddColor: "bg-blue-700",
-      tableHeaderColor: "bg-blue-900",
-      tableBorderColor: "border-blue-500"
-    };
-  }
-  if (nombreNormalizado.includes("alpine")) {
-    return {
-      bgColor: "bg-blue-400",
-      textColor: "text-black",
-      tableRowEvenColor: "bg-blue-200",
-      tableRowOddColor: "bg-blue-100",
-      tableHeaderColor: "bg-blue-300",
-      tableBorderColor: "border-blue-300"
-    };
-  }
-  if (nombreNormalizado.includes("aston martin")) {
-    return {
-      bgColor: "bg-emerald-800",
-      textColor: "text-white",
-      tableRowEvenColor: "bg-emerald-900",
-      tableRowOddColor: "bg-emerald-700",
-      tableHeaderColor: "bg-emerald-950",
-      tableBorderColor: "border-emerald-600"
-    };
-  }
-  if (nombreNormalizado.includes("ferrari")) {
-    return {
-      bgColor: "bg-red-600",
-      textColor: "text-white",
-      tableRowEvenColor: "bg-red-900",
-      tableRowOddColor: "bg-red-700",
-      tableHeaderColor: "bg-red-950",
-      tableBorderColor: "border-red-500"
-    };
-  }
-  if (nombreNormalizado.includes("mclaren")) {
-    return {
-      bgColor: "bg-orange-500",
-      textColor: "text-black",
-      tableRowEvenColor: "bg-orange-300",
-      tableRowOddColor: "bg-orange-200",
-      tableHeaderColor: "bg-orange-400",
-      tableBorderColor: "border-orange-400"
-    };
-  }
-  if (nombreNormalizado === "nano") {
-    return {
-      bgColor: "bg-fuchsia-600",
-      textColor: "text-white",
-      tableRowEvenColor: "bg-fuchsia-800",
-      tableRowOddColor: "bg-fuchsia-700",
-      tableHeaderColor: "bg-fuchsia-900",
-      tableBorderColor: "border-fuchsia-500"
-    };
-  }
-
-  // Color por defecto para cualquier otra escudería
-  return {
-    bgColor: "bg-gray-800",
-    textColor: "text-white",
-    tableRowEvenColor: "bg-gray-700",
-    tableRowOddColor: "bg-gray-600",
-    tableHeaderColor: "bg-gray-900",
-    tableBorderColor: "border-gray-500"
-  };
-};
-
 type Sancion = {
   id_sancion: number;
   fechaSancion: string;
   motivo: string;
   descripcion: string;
-  nombrePiloto: string; // <-- Aseguramos que existe
+  nombrePiloto: string;
   nombreCarrera: string;
 };
 
 type EscuderiaConSanciones = {
   id_escuderia: number;
   nombreEscuderia: string;
+  color: string; 
+  logo: string;  
   sanciones: Sancion[];
 };
 
@@ -129,10 +35,10 @@ export default function SancionesPorEscuderia() {
 
   useEffect(() => {
     const fetchEscuderiasConSanciones = async () => {
-      // 1️⃣ Traer todas las escuderías activas
+      // 1️⃣ Traer todas las escuderías activas con sus datos de estilo
       const { data: escuderiasData, error: escuderiasError } = await supabase
         .from("Escuderia")
-        .select("id_escuderia, nombre")
+        .select("id_escuderia, nombre, color, logo") 
         .eq("activo", true)
         .order("nombre");
 
@@ -153,12 +59,19 @@ export default function SancionesPorEscuderia() {
           const pilotoIds = pilotosData?.map((p: any) => p.id_piloto) || [];
 
           if (pilotoIds.length === 0) {
-            return { id_escuderia: esc.id_escuderia, nombreEscuderia: esc.nombre, sanciones: [] };
+            return { 
+                id_escuderia: esc.id_escuderia, 
+                nombreEscuderia: esc.nombre, 
+                color: esc.color, 
+                logo: esc.logo, 
+                sanciones: [] 
+            };
           }
 
           // Sanciones de esos pilotos
           const sancionesPromises = pilotoIds.map(async (idPiloto: number) => {
-            // ⭐ NUEVO PASO: Obtener el nombre del piloto
+            
+            // Obtener el nombre del piloto
             const { data: pilotoInfo } = await supabase
               .from("Piloto")
               .select("nombre")
@@ -182,12 +95,8 @@ export default function SancionesPorEscuderia() {
                   .eq("id_sancion", s.id_sancion)
                   .single();
 
-                // Carrera relacionada (fecha de sanción)
+                // Búsqueda de la carrera relacionada
                 let nombreCarrera = "-";
-                // Este bloque de código para buscar la carrera asociada es complejo
-                // y asume que la sanción tiene una fecha que coincide con una carrera
-                // donde corrió el piloto.
-                // Lo mantengo, pero puede ser la fuente de que 'nombreCarrera' sea '-'
                 const { data: correData } = await supabase
                   .from("Corre")
                   .select("id_carrera")
@@ -206,13 +115,12 @@ export default function SancionesPorEscuderia() {
                   }
                 }
                 
-                // ⭐ INCLUIR el nombre del piloto en el objeto de sanción
                 return {
                   id_sancion: sancion.id_sancion,
                   fechaSancion: sancion.fecha,
                   motivo: sancion.motivo,
                   descripcion: sancion.descripcion ?? "-",
-                  nombrePiloto: nombrePiloto, // ⭐ ¡Ahora tenemos el nombre!
+                  nombrePiloto: nombrePiloto,
                   nombreCarrera,
                 };
               })
@@ -225,6 +133,8 @@ export default function SancionesPorEscuderia() {
           return {
             id_escuderia: esc.id_escuderia,
             nombreEscuderia: esc.nombre,
+            color: esc.color, 
+            logo: esc.logo,   
             sanciones: sancionesFlattened,
           };
         })
@@ -240,57 +150,84 @@ export default function SancionesPorEscuderia() {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  // [ ... JSX renderizado permanece igual ... ]
-
   return (
-    <div className="flex justify-center min-h-screen p-10 bg-gray-900 text-white">
+    // CAMBIO 1: Fondo de página a blanco y texto principal a negro
+    <div className="flex justify-center min-h-screen p-10 bg-white text-black">
       <main className="w-full max-w-5xl">
-        <h1 className="text-2xl font-bold mb-6">Sanciones por Escudería</h1>
-
+        <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold">Sanciones por Escudería</h1>
+            <Link href="/client/" className="text-blue-600 hover:underline"> 
+                Página principal
+            </Link>
+        </div>
+        
         <div className="space-y-4">
           {escuderias.map(esc => {
-            const { bgColor, textColor, tableRowEvenColor, tableRowOddColor, tableHeaderColor, tableBorderColor } = getEscuderiaColor(esc.nombreEscuderia);
+            
+            // Si el color no existe, usamos un color de fallback
+            const colorFondo = esc.color ? '#' + esc.color : '#888888'; 
+            let logoURL = "/icon.png"; 
+
+            if (typeof esc.logo === "string" && esc.logo.trim() !== "") {
+                try {
+                    new URL(esc.logo);
+                    logoURL = esc.logo;
+                } catch {}
+            }
+            
             return (
-              <div
-                key={esc.id_escuderia}
-                className={`border ${tableBorderColor} rounded shadow-lg overflow-hidden`}
+              <div 
+                key={esc.id_escuderia} 
+                className="relative w-full rounded-lg shadow-lg overflow-hidden" 
+                // Estilo para el encabezado de la escudería (Fondo sólido del color del equipo)
+                style={{ background: colorFondo, color: '#fff' }}
               >
-                <button
-                  onClick={() => toggleExpanded(esc.id_escuderia)}
-                  className={`w-full text-left px-4 py-2 ${bgColor} ${textColor} font-semibold hover:opacity-90 transition-opacity`}
+                <div 
+                    className="relative flex items-center p-4 cursor-pointer min-h-[100px] hover:opacity-90 transition-opacity"
+                    onClick={() => toggleExpanded(esc.id_escuderia)}
                 >
-                  {esc.nombreEscuderia} ({esc.sanciones.length} sanciones)
-                </button>
+                    {/* Nombre y Cantidad de Sanciones */}
+                    <div className="text-2xl font-bold mr-4 flex-shrink-0 z-10">
+                        {esc.nombreEscuderia} ({esc.sanciones.length})
+                    </div>
 
-                {expandedId === esc.id_escuderia && esc.sanciones.length > 0 && (
-                  <div className={`p-4 ${tableHeaderColor} ${textColor}`}>
-                    <table className={`w-full border-collapse ${textColor}`}>
-                      <thead>
-                        <tr>
-                          <th className={`border ${tableBorderColor} px-4 py-2 text-left ${tableHeaderColor}`}>Fecha Sanción</th>
-                          <th className={`border ${tableBorderColor} px-4 py-2 text-left ${tableHeaderColor}`}>Motivo</th>
-                          <th className={`border ${tableBorderColor} px-4 py-2 text-left ${tableHeaderColor}`}>Nombre Piloto</th>
-                          <th className={`border ${tableBorderColor} px-4 py-2 text-left ${tableHeaderColor}`}>Descripción</th>
-                          <th className={`border ${tableBorderColor} px-4 py-2 text-left ${tableHeaderColor}`}>Nombre Carrera</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {esc.sanciones.map((s, index) => (
-                          <tr key={s.id_sancion} className={`${index % 2 === 0 ? tableRowEvenColor : tableRowOddColor} hover:opacity-90 transition-opacity`}>
-                            <td className={`border ${tableBorderColor} px-4 py-2`}>{s.fechaSancion}</td>
-                            <td className={`border ${tableBorderColor} px-4 py-2`}>{s.motivo}</td>
-                            <td className={`border ${tableBorderColor} px-4 py-2`}>{s.nombrePiloto}</td>
-                            <td className={`border ${tableBorderColor} px-4 py-2`}>{s.descripcion}</td>
-                            <td className={`border ${tableBorderColor} px-4 py-2`}>{s.nombreCarrera}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    {/* Logo como fondo semi-transparente */}
+                    {logoURL && (
+                      <div className="absolute inset-0 flex justify-center items-center pointer-events-none opacity-20"> 
+                          <div className="relative h-20 w-32">
+                              {/* NOTE: Asegúrate de haber configurado el dominio de Supabase en next.config.js para que esto funcione */}
+                              <Image
+                                src={logoURL}
+                                alt={`Logo de ${esc.nombreEscuderia}`}
+                                fill
+                                className="object-contain"
+                              />
+                          </div>
+                      </div>
+                    )}
+
+                    {/* Flecha de expansión */}
+                    <div className="ml-auto text-2xl flex-shrink-0 z-10">
+                      {expandedId === esc.id_escuderia ? <FaChevronDown /> : <FaChevronRight />}
+                    </div>
+                </div>
+
+                {/* Contenido de sanciones */}
+                {expandedId === esc.id_escuderia && (
+                  // CAMBIO 2: Fondo del contenedor de sanciones a blanco (o un gris claro)
+                  <div className="p-4 border-t border-black/10 space-y-4 bg-gray-50"> 
+                    {esc.sanciones.length > 0 ? (
+                      esc.sanciones.map(s => (
+                        <SancionCard 
+                            key={s.id_sancion} 
+                            sancion={s} 
+                            colorEscuderia={esc.color} 
+                        />
+                      ))
+                    ) : (
+                      <p className="text-gray-600">No hay sanciones registradas para esta escudería.</p>
+                    )}
                   </div>
-                )}
-
-                {expandedId === esc.id_escuderia && esc.sanciones.length === 0 && (
-                  <div className={`p-4 ${tableRowOddColor} ${textColor}`}>No hay sanciones para esta escudería.</div>
                 )}
               </div>
             );
