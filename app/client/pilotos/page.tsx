@@ -20,6 +20,7 @@ export type Piloto = {
   escuderias?: string[];
   titular?: boolean | null;
   proximaCarrera?: string | null;
+  categoria? : string
 };
 
 //Función para calcular la edad a partir de la fecha de nacimiento
@@ -34,10 +35,6 @@ export function calcularEdad(fechaNacimiento: string): number {
   }
 
   return edad;
-}
-
-export function proximaCarrera(){
-
 }
 
 export default function PilotosPage() {
@@ -77,12 +74,23 @@ export default function PilotosPage() {
 
         if (errorCar) throw errorCar;
         
-
         const { data: pilotoCorre, error: errorPilcor } = await supabase
           .from("Corre")
           .select("id_piloto, id_carrera, id_escuderia");
 
         if (errorPilcor) throw errorPilcor;
+
+        const { data: categorias, error: errorCateg } = await supabase
+          .from("Categoria")
+          .select("id_categoria, nombre");
+
+        if (errorCateg) throw errorCateg;
+
+        /*const { data: categoriaCarrera, error: errorCategCarr } = await supabase
+          .from("CategoriaTieneCarrera")
+          .select("id_categoria, id_carrera");
+
+        if (errorCategCarr) throw errorCategCarr;*/
 
         setListaEscuderias(escuderias ?? []);
 
@@ -116,6 +124,8 @@ export default function PilotosPage() {
 
               const proximaCarrera = proximas.length > 0 ? proximas[0].nombre : "Sin próxima carrera";
 
+              const categoria = "F1"
+              //TO DO: Revisar como conseguimos las categorías desde la bd
             return {
               ...p,
               edad,
@@ -123,6 +133,7 @@ export default function PilotosPage() {
               escuderias: escuderiasPiloto.length > 0 ? escuderiasPiloto : ["Sin escudería"],
               titular: relacionesPiloto.some((rel) => rel.esTitular) || null,
               proximaCarrera,
+              categoria,
             };
         }) ?? [];
 

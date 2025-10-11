@@ -1,6 +1,6 @@
 // components/PilotoCard.tsx
 import Image from 'next/image';
-import { Piloto, proximaCarrera } from '../app/client/pilotos/page';
+import { Piloto } from '../app/client/pilotos/page';
 
 type PilotoCardProps = {
   piloto: Piloto;
@@ -18,9 +18,10 @@ export default function PilotoCard({ piloto, escuderiaContexto , colorFondo}: Pi
   const fotoUrl = piloto.foto || '/icon.png'; 
   const edad = piloto.edad || 'N/A'; 
   const pais = piloto.pais || 'N/A';
-  const proximaCarrera =  piloto.proximaCarrera || "Sin próxima carrera"
+  const proximaCarrera =  piloto.proximaCarrera || "Sin próxima carrera";
   const bgColor = colorFondo? '#' + colorFondo : "#ffffff";
-  const textColor = escuderiaContexto? '#000000ff' : '#ffffffff'
+  const textColor = escuderiaContexto? '#000000ff' : '#ffffffff';
+  const categoria = piloto.categoria || "Sin categoría";
 
   return (
     <div 
@@ -38,6 +39,7 @@ export default function PilotoCard({ piloto, escuderiaContexto , colorFondo}: Pi
           <p className="text-xl font-semibold">País: {pais}</p>
           <p className="text-xl font-semibold">Escudería: {escuderiasMostrar.join(", ")}</p>
           <p className="text-xl font-semibold">Rol : {rol}</p>
+          <p className="text-xl font-semibold">Categoría : {categoria}</p>
           <p className="text-xl font-semibold">Próxima Carrera : {proximaCarrera}</p>
         </div>
         
