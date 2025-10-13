@@ -103,14 +103,14 @@ export default function EscuderiasPage() {
 // -------------------------------------------------------------
 
  return (
-        <div className="p-10 bg-white text-black">
+        <div className="p-10 bg-white text-white">
             <div className="flex justify-between items-center mb-6">
                 <input
                   type="text"
                   placeholder="Buscar escudería..."
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
-                  className="w-3/4 md:w-2/3 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <Link href="/client/" className="text-blue-600 hover:underline"> 
                     Página principal

@@ -39,9 +39,11 @@ export function calcularEdad(fechaNacimiento: string): number {
 
 export default function PilotosPage() {
   const [listaPilotos, setListaPilotos] = useState<Piloto[]>([]);
+  const [filteredPilotos, setFilteredPilotos] = useState<Piloto[]>([]);
   const [listaEscuderias, setListaEscuderias] = useState<Escuderia[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
 
   useEffect(() => {
     const fetchPilotosConEscuderia = async () => {
@@ -153,6 +155,7 @@ export default function PilotosPage() {
           });
 
         setListaPilotos(resultado);
+        setFilteredPilotos(resultado);
       } catch (err: any) {
         console.error("Error al cargar pilotos:", err);
         setError(`Error al cargar los datos: ${err.message}`);
@@ -163,12 +166,27 @@ export default function PilotosPage() {
 
     fetchPilotosConEscuderia();
   }, []);
+
+    // Filtrar mientras el usuario escribe
+  useEffect(() => {
+    const texto = busqueda.toLowerCase();
+    const filtrados = listaPilotos.filter((p) =>
+      p.nombre.toLowerCase().includes(texto)
+    );
+    setFilteredPilotos(filtrados);
+  }, [busqueda, listaEscuderias]);
 // -------------------------------------------------------------
 
  return (
-        <div className="p-10 bg-white text-black">
+        <div className="p-10 bg-white text-white">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold">Listado de Pilotos</h1>
+                <input
+                  type="text"
+                  placeholder="Buscar piloto..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  className="md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
                 <Link href="/client/" className="text-blue-600 hover:underline"> 
                     Página principal
                 </Link>
@@ -184,7 +202,7 @@ export default function PilotosPage() {
             {!loading && !error && (
                 // Usamos 'space-y-8' para dejar espacio entre cada tarjeta de piloto
                 <div className="space-y-8"> 
-                    {listaPilotos.map((piloto) => {
+                    {filteredPilotos.map((piloto) => {
                     let colorFondo;
 
                     if (piloto.escuderias && piloto.escuderias.length === 1) {
