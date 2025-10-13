@@ -396,6 +396,22 @@ export default function CalendarioPage() {
                     <label className="text-sm font-medium text-gray-600">Tipo</label>
                     <p className="capitalize text-black">{eventoSeleccionado.tipo}</p>
                   </div>
+                  {/* Mostrar nombre de categoría para carreras */}
+                  {eventoSeleccionado.tipo === "carrera" && eventoSeleccionado.id_categoria && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Categoría</label>
+                      <p className="text-black">
+                        <CategoriaNombre id={eventoSeleccionado.id_categoria} />
+                      </p>
+                    </div>
+                  )}
+                  {/* Mostrar lugar para carreras */}
+                  {eventoSeleccionado.tipo === "carrera" && eventoSeleccionado.lugar && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Lugar</label>
+                      <p className="text-black">{eventoSeleccionado.lugar}</p>
+                    </div>
+                  )}
 
                   {/* Mostrar loader hasta que los nombres estén resueltos */}
                   {detallesCargando ? (
@@ -532,6 +548,28 @@ function NombrePiloto({ id, onLoaded }: { id: number, onLoaded?: () => void }) {
     fetchNombre();
     return () => { mounted = false; };
   }, [id, onLoaded]);
+
+  if (nombre === null) return null;
+  return <span>{nombre}</span>;
+}
+
+// Componente para mostrar el nombre de la categoría dado su id
+function CategoriaNombre({ id }: { id: number }) {
+  const [nombre, setNombre] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchNombre() {
+      const { data } = await supabase
+        .from("Categoria")
+        .select("nombre")
+        .eq("id_categoria", id)
+        .single();
+      if (mounted) setNombre(data?.nombre ?? "");
+    }
+    fetchNombre();
+    return () => { mounted = false; };
+  }, [id]);
 
   if (nombre === null) return null;
   return <span>{nombre}</span>;
