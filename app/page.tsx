@@ -31,6 +31,20 @@ export default function HomePage() {
         >
           Gestión de puntos
         </Link>
+
+        <Link
+          href="/sanciones"
+          className="rounded-lg bg-red-600 px-6 py-3 text-center text-white font-semibold shadow hover:bg-red-700 transition"
+        >
+          Sanciones
+        </Link>
+
+        <Link
+          href="/calendario"
+          className="rounded-lg bg-orange-600 px-6 py-3 text-center text-white font-semibold shadow hover:bg-orange-700 transition"
+        >
+          Calendario F1
+        </Link>
       </div>
     </main>
   );
