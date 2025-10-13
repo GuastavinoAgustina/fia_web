@@ -125,7 +125,7 @@ export default function Home() {
 
   return (
     <main className="p-10 min-h-screen flex flex-col items-center">
-      <div className="w-full max-w-xl p-6 rounded-2xl shadow-lg space-y-6">
+      <div className="w-full max-w-xl p-6 rounded-2xl space-y-6">
         {/* Encabezado */}
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Gestión de puntos</h1>
