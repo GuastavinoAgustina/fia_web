@@ -1,24 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import Link from 'next/link';
+import { createClient } from "@/lib/supabase/client";
 
-// Datos simulados de eventos de F1
-const eventosF1 = [
-  { fecha: "2025-03-16", evento: "GP de Bahréin", tipo: "carrera" },
-  { fecha: "2025-03-23", evento: "GP de Arabia Saudí", tipo: "carrera" },
-  { fecha: "2025-04-13", evento: "GP de Australia", tipo: "carrera" },
-  { fecha: "2025-04-27", evento: "GP de Japón", tipo: "carrera" },
-  { fecha: "2025-05-04", evento: "GP de China", tipo: "carrera" },
-  { fecha: "2025-05-18", evento: "GP de Miami", tipo: "carrera" },
-  { fecha: "2025-05-25", evento: "GP de Emilia-Romagna", tipo: "carrera" },
-  { fecha: "2025-06-01", evento: "GP de Mónaco", tipo: "carrera" },
-  { fecha: "2025-06-15", evento: "GP de Canadá", tipo: "carrera" },
-  { fecha: "2025-06-29", evento: "GP de España", tipo: "carrera" },
-  { fecha: "2025-07-06", evento: "GP de Austria", tipo: "carrera" },
-  { fecha: "2025-07-27", evento: "GP de Gran Bretaña", tipo: "carrera" },
-];
+const supabase = createClient();
+
+type Evento = {
+  fecha: string;
+  evento: string;
+  tipo: string;
+  id_carrera?: number;
+  id_pruebaneumatico?: number;
+  id_control_tecnico?: number;
+  // Guardar el resto de columnas si querés mostrar más info
+  [key: string]: any;
+};
 
 const meses = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -29,15 +27,124 @@ const diasSemana = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 export default function CalendarioPage() {
   const [fechaActual, setFechaActual] = useState(new Date());
-  const [eventoSeleccionado, setEventoSeleccionado] = useState<any>(null);
+  const [eventoSeleccionado, setEventoSeleccionado] = useState<Evento | null>(null);
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [detalleExtra, setDetalleExtra] = useState<any[]>([]);
+  const [loadingDetalle, setLoadingDetalle] = useState(false);
+
+  // Estado para saber si los nombres de detalles están cargando
+  const [detallesCargando, setDetallesCargando] = useState(true);
+
+  // Estado para guardar los detalles con nombres ya resueltos
+  const [detallesResueltos, setDetallesResueltos] = useState<any[]>([]);
+
+  // Cargar eventos desde la base de datos
+  useEffect(() => {
+    fetchEventos();
+  }, []);
+
+  async function fetchEventos() {
+    setLoading(true);
+
+    // Carrera
+    const { data: carreras } = await supabase
+      .from("Carrera")
+      .select("*");
+
+    // PruebaNeumatico
+    const { data: pruebas } = await supabase
+      .from("PruebaNeumatico")
+      .select("*");
+
+    // ControlTecnico
+    const { data: controles } = await supabase
+      .from("ControlTecnico")
+      .select("*");
+
+    const eventosBD: Evento[] = [];
+
+    if (carreras) {
+      carreras.forEach((c: any) => {
+        eventosBD.push({
+          ...c,
+          fecha: c.fecha,
+          evento: c.nombre ? `Carrera: ${c.nombre}` : `Carrera en ${c.lugar}`,
+          tipo: "carrera",
+          id_carrera: c.id_carrera
+        });
+      });
+    }
+    if (pruebas) {
+      pruebas.forEach((p: any) => {
+        eventosBD.push({
+          ...p,
+          fecha: p.fecha,
+          evento: "Prueba de Neumáticos",
+          tipo: "prueba",
+          id_prueba_neumatico: p.id_prueba_neumatico // <-- corregido aquí
+        });
+      });
+    }
+    if (controles) {
+      controles.forEach((ct: any) => {
+        eventosBD.push({
+          ...ct,
+          fecha: ct.fecha,
+          evento: "Control Técnico",
+          tipo: "control",
+          id_control_tecnico: ct.id_control_tecnico
+        });
+      });
+    }
+
+    eventosBD.sort((a, b) => a.fecha.localeCompare(b.fecha));
+    setEventos(eventosBD);
+    setLoading(false);
+  }
+
+  // Cargar detalles extra según el tipo de evento
+  useEffect(() => {
+    setDetalleExtra([]);
+    if (!eventoSeleccionado) return;
+    fetchDetalleExtra(eventoSeleccionado);
+  }, [eventoSeleccionado]);
+
+  async function fetchDetalleExtra(evento: Evento) {
+    setLoadingDetalle(true);
+
+    if (evento.tipo === "carrera" && evento.id_carrera) {
+      const { data: corre } = await supabase
+        .from("Corre")
+        .select("*")
+        .eq("id_carrera", evento.id_carrera);
+      setDetalleExtra(corre ?? []);
+    }
+    if (evento.tipo === "prueba" && evento.id_prueba_neumatico) { // <-- corregido aquí
+      const { data: pruebas } = await supabase
+        .from("PruebaSobreEscuderia")
+        .select("*")
+        .eq("id_prueba_neumatico", evento.id_prueba_neumatico); // <-- corregido aquí
+      setDetalleExtra(pruebas ?? []);
+    }
+    if (evento.tipo === "control" && evento.id_control_tecnico) {
+      const { data: controles } = await supabase
+        .from("ControlSobreEscuderia")
+        .select("*")
+        .eq("id_control_tecnico", evento.id_control_tecnico);
+      setDetalleExtra(controles ?? []);
+    }
+
+    setLoadingDetalle(false);
+  }
 
   // Obtener el primer día del mes
   const primerDia = new Date(fechaActual.getFullYear(), fechaActual.getMonth(), 1);
   const ultimoDia = new Date(fechaActual.getFullYear(), fechaActual.getMonth() + 1, 0);
-  
+
   // Obtener el día de la semana del primer día (0 = domingo)
   const primerDiaSemana = primerDia.getDay();
-  
+
   // Obtener el número de días en el mes
   const diasEnMes = ultimoDia.getDate();
 
@@ -53,41 +160,96 @@ export default function CalendarioPage() {
   // Obtener eventos para una fecha específica
   const obtenerEventosPorFecha = (dia: number) => {
     const fechaBuscada = `${fechaActual.getFullYear()}-${String(fechaActual.getMonth() + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
-    return eventosF1.filter(evento => evento.fecha === fechaBuscada);
+    return eventos.filter(evento => evento.fecha.startsWith(fechaBuscada));
   };
 
   // Generar array de días para mostrar
   const generarDias = () => {
     const dias = [];
-    
-    // Días vacíos al inicio del mes
     for (let i = 0; i < primerDiaSemana; i++) {
       dias.push(null);
     }
-    
-    // Días del mes
     for (let dia = 1; dia <= diasEnMes; dia++) {
       dias.push(dia);
     }
-    
     return dias;
   };
 
   const hoy = new Date();
   const esHoy = (dia: number) => {
-    return hoy.getDate() === dia && 
-           hoy.getMonth() === fechaActual.getMonth() && 
-           hoy.getFullYear() === fechaActual.getFullYear();
+    return hoy.getDate() === dia &&
+      hoy.getMonth() === fechaActual.getMonth() &&
+      hoy.getFullYear() === fechaActual.getFullYear();
   };
 
+  // Próximos eventos (los siguientes 5 a partir de hoy)
+  const proximosEventos = eventos
+    .filter(e => new Date(e.fecha) >= hoy)
+    .slice(0, 5);
+
+  // Efecto para cargar los detalles con nombres
+  useEffect(() => {
+    setDetallesCargando(true);
+    setDetallesResueltos([]);
+    if (!eventoSeleccionado || detalleExtra.length === 0) {
+      setDetallesCargando(false);
+      return;
+    }
+
+    // Función auxiliar para obtener nombre de escudería
+    const getEscuderiaNombre = async (id: number) => {
+      const { data } = await supabase
+        .from("Escuderia")
+        .select("nombre")
+        .eq("id_escuderia", id)
+        .single();
+      return data?.nombre ?? id;
+    };
+
+    // Función auxiliar para obtener nombre de piloto
+    const getPilotoNombre = async (id: number) => {
+      const { data } = await supabase
+        .from("Piloto")
+        .select("nombre")
+        .eq("id_piloto", id)
+        .single();
+      return data?.nombre ?? id;
+    };
+
+    // Resolver detalles según tipo
+    (async () => {
+      if (eventoSeleccionado.tipo === "carrera") {
+        const detalles = await Promise.all(detalleExtra.map(async (item: any) => ({
+          piloto: item.id_piloto ? await getPilotoNombre(item.id_piloto) : null,
+          escuderia: item.id_escuderia ? await getEscuderiaNombre(item.id_escuderia) : null,
+          puntaje: item.puntaje ?? null
+        })));
+        setDetallesResueltos(detalles);
+      } else if (eventoSeleccionado.tipo === "prueba") {
+        const detalles = await Promise.all(detalleExtra.map(async (item: any) => ({
+          escuderia: item.id_escuderia ? await getEscuderiaNombre(item.id_escuderia) : null,
+          informacion: item.informacion ?? null
+        })));
+        setDetallesResueltos(detalles);
+      } else if (eventoSeleccionado.tipo === "control") {
+        const detalles = await Promise.all(detalleExtra.map(async (item: any) => ({
+          escuderia: item.id_escuderia ? await getEscuderiaNombre(item.id_escuderia) : null,
+          id_control_tecnico: item.id_control_tecnico ?? null,
+          informacion: item.informacion ?? null
+        })));
+        setDetallesResueltos(detalles);
+      }
+      setDetallesCargando(false);
+    })();
+  }, [eventoSeleccionado, detalleExtra]);
+
   return (
-    // Fondo blanco estilo sanciones
     <div className="flex justify-center min-h-screen p-10 bg-white text-black">
       <main className="w-full max-w-6xl">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <CalendarIcon className="h-8 w-8 text-red-600" />
-            <h1 className="text-3xl font-bold">Calendario F1 2025</h1>
+            <h1 className="text-3xl font-bold">Calendario de Eventos</h1>
           </div>
           <Link href="/" className="text-blue-600 hover:underline">
             Página principal
@@ -106,11 +268,11 @@ export default function CalendarioPage() {
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
-                
+
                 <h2 className="text-2xl font-semibold text-black">
                   {meses[fechaActual.getMonth()]} {fechaActual.getFullYear()}
                 </h2>
-                
+
                 <button
                   onClick={mesSiguiente}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors border"
@@ -135,8 +297,8 @@ export default function CalendarioPage() {
                     return <div key={`empty-${index}`} className="p-3 h-24 bg-gray-50"></div>;
                   }
 
-                  const eventos = obtenerEventosPorFecha(dia);
-                  const tieneEventos = eventos.length > 0;
+                  const eventosDia = obtenerEventosPorFecha(dia);
+                  const tieneEventos = eventosDia.length > 0;
 
                   return (
                     <div
@@ -146,14 +308,14 @@ export default function CalendarioPage() {
                         ${esHoy(dia) ? 'bg-blue-100 border-blue-300' : 'bg-white'}
                         ${tieneEventos ? 'bg-red-50 border-red-200' : ''}
                       `}
-                      onClick={() => tieneEventos && setEventoSeleccionado(eventos[0])}
+                      onClick={() => tieneEventos && setEventoSeleccionado(eventosDia[0])}
                     >
                       <div className={`text-sm font-medium mb-1 ${esHoy(dia) ? 'text-blue-700 font-bold' : 'text-black'}`}>
                         {dia}
                       </div>
                       {tieneEventos && (
                         <div className="text-xs bg-red-600 text-white px-1 py-0.5 rounded truncate">
-                          {eventos[0].evento.replace("GP de ", "")}
+                          {eventosDia[0].evento}
                         </div>
                       )}
                     </div>
@@ -165,26 +327,48 @@ export default function CalendarioPage() {
 
           {/* Panel lateral */}
           <div className="space-y-6">
-            {/* Próximas carreras */}
+            {/* Leyenda */}
             <div className="bg-white rounded-lg shadow-lg border p-6">
-              <h3 className="text-xl font-semibold mb-4 text-black">Próximas Carreras</h3>
+              <h3 className="text-lg font-semibold mb-3 text-black">Leyenda</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div>
+                  <span className="text-sm text-black">Día actual</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-50 border border-red-200 rounded"></div>
+                  <span className="text-sm text-black">Evento</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Próximos eventos */}
+            <div className="bg-white rounded-lg shadow-lg border p-6">
+              <h3 className="text-xl font-semibold mb-4 text-black">Próximos Eventos</h3>
               <div className="space-y-3">
-                {eventosF1.slice(0, 5).map((evento, index) => (
-                  <div
-                    key={`evento-${evento.fecha}-${index}`}
-                    className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => setEventoSeleccionado(evento)}
-                  >
-                    <div className="font-medium text-sm text-black">{evento.evento}</div>
-                    <div className="text-xs text-gray-600">
-                      {new Date(evento.fecha).toLocaleDateString('es-ES', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                      })}
+                {loading ? (
+                  <div className="text-gray-500">Cargando...</div>
+                ) : proximosEventos.length === 0 ? (
+                  <div className="text-gray-500">No hay próximos eventos.</div>
+                ) : (
+                  proximosEventos.map((evento, index) => (
+                    <div
+                      key={`evento-${evento.fecha}-${index}`}
+                      className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => setEventoSeleccionado(evento)}
+                    >
+                      <div className="font-medium text-sm text-black">{evento.evento}</div>
+                      <div className="text-xs text-gray-600">
+                        {new Date(evento.fecha).toLocaleDateString('es-ES', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })}
+                      </div>
+                      <div className="text-xs capitalize text-gray-500">{evento.tipo}</div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
@@ -210,6 +394,81 @@ export default function CalendarioPage() {
                     <label className="text-sm font-medium text-gray-600">Tipo</label>
                     <p className="capitalize text-black">{eventoSeleccionado.tipo}</p>
                   </div>
+
+                  {/* Mostrar loader hasta que los nombres estén resueltos */}
+                  {detallesCargando ? (
+                    <div className="text-gray-500">Cargando detalles...</div>
+                  ) : (
+                    detallesResueltos.length > 0 && (
+                      <>
+                        {/* Control Técnico */}
+                        {eventoSeleccionado.tipo === "control" && detallesResueltos.map((item, idx) => (
+                          <div key={idx} className="space-y-2">
+                            {item.escuderia && (
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Escudería</label>
+                                <div className="text-black">{item.escuderia}</div>
+                              </div>
+                            )}
+                            {item.id_control_tecnico && (
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Id de control técnico</label>
+                                <div className="text-black">{item.id_control_tecnico}</div>
+                              </div>
+                            )}
+                            {item.informacion && (
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Más información</label>
+                                <div className="text-black">{item.informacion}</div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Prueba de Neumáticos */}
+                        {eventoSeleccionado.tipo === "prueba" && detallesResueltos.map((item, idx) => (
+                          <div key={idx} className="space-y-2">
+                            {item.escuderia && (
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Escudería</label>
+                                <div className="text-black">{item.escuderia}</div>
+                              </div>
+                            )}
+                            {item.informacion && (
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Más información</label>
+                                <div className="text-black">{item.informacion}</div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Carrera */}
+                        {eventoSeleccionado.tipo === "carrera" && detallesResueltos.map((item, idx) => (
+                          <div key={idx} className="space-y-2">
+                            {item.piloto && (
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Piloto</label>
+                                <div className="text-black">{item.piloto}</div>
+                              </div>
+                            )}
+                            {item.escuderia && (
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Escudería</label>
+                                <div className="text-black">{item.escuderia}</div>
+                              </div>
+                            )}
+                            {item.puntaje !== undefined && item.puntaje !== null && (
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Puntaje</label>
+                                <div className="text-black">{item.puntaje}</div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </>
+                    )
+                  )}
                   <button
                     onClick={() => setEventoSeleccionado(null)}
                     className="w-full mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
@@ -219,24 +478,59 @@ export default function CalendarioPage() {
                 </div>
               </div>
             )}
-
-            {/* Leyenda */}
-            <div className="bg-white rounded-lg shadow-lg border p-6">
-              <h3 className="text-lg font-semibold mb-3 text-black">Leyenda</h3>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div>
-                  <span className="text-sm text-black">Día actual</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-red-50 border border-red-200 rounded"></div>
-                  <span className="text-sm text-black">Gran Premio</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </main>
     </div>
   );
+}
+
+// Componente para mostrar el nombre de la escudería dado su id
+function EscuderiaNombre({ id, onLoaded }: { id: number, onLoaded?: () => void }) {
+  const [nombre, setNombre] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchNombre() {
+      const { data } = await supabase
+        .from("Escuderia")
+        .select("nombre")
+        .eq("id_escuderia", id)
+        .single();
+      if (mounted) {
+        setNombre(data?.nombre ?? "");
+        if (onLoaded) onLoaded();
+      }
+    }
+    fetchNombre();
+    return () => { mounted = false; };
+  }, [id, onLoaded]);
+
+  if (nombre === null) return null;
+  return <span>{nombre}</span>;
+}
+
+// Componente para mostrar el nombre del piloto dado su id
+function NombrePiloto({ id, onLoaded }: { id: number, onLoaded?: () => void }) {
+  const [nombre, setNombre] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchNombre() {
+      const { data } = await supabase
+        .from("Piloto")
+        .select("nombre")
+        .eq("id_piloto", id)
+        .single();
+      if (mounted) {
+        setNombre(data?.nombre ?? "");
+        if (onLoaded) onLoaded();
+      }
+    }
+    fetchNombre();
+    return () => { mounted = false; };
+  }, [id, onLoaded]);
+
+  if (nombre === null) return null;
+  return <span>{nombre}</span>;
 }
