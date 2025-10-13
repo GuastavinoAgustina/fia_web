@@ -14,7 +14,6 @@ type Evento = {
   id_carrera?: number;
   id_pruebaneumatico?: number;
   id_control_tecnico?: number;
-  // Guardar el resto de columnas si querés mostrar más info
   [key: string]: any;
 };
 
@@ -82,7 +81,7 @@ export default function CalendarioPage() {
           fecha: p.fecha,
           evento: "Prueba de Neumáticos",
           tipo: "prueba",
-          id_prueba_neumatico: p.id_prueba_neumatico // <-- corregido aquí
+          id_prueba_neumatico: p.id_prueba_neumatico
         });
       });
     }
@@ -314,7 +313,10 @@ export default function CalendarioPage() {
                         {dia}
                       </div>
                       {tieneEventos && (
-                        <div className="text-xs bg-red-600 text-white px-1 py-0.5 rounded truncate">
+                        <div
+                          className="text-xs bg-red-600 text-white px-1 py-0.5 rounded truncate"
+                          title={eventosDia[0].evento} // <-- muestra el título completo al hacer hover
+                        >
                           {eventosDia[0].evento}
                         </div>
                       )}
