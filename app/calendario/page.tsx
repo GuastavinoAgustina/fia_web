@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import Link from 'next/link';
 import { createClient } from "@/lib/supabase/client";
@@ -54,6 +54,9 @@ export default function CalendarioPage() {
   const [tempFiltroCategoria, setTempFiltroCategoria] = useState("");
   // Estado para saber si se hizo una búsqueda
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
+
+  // Ref para el apartado de detalles
+  const detallesRef = useRef<HTMLDivElement>(null);
 
   // Cargar eventos desde la base de datos
   useEffect(() => {
@@ -275,6 +278,13 @@ export default function CalendarioPage() {
     setResultadosBusqueda(filtradas);
   }, [filtroFecha, filtroLugar, filtroCategoria, eventos, busquedaRealizada]);
 
+  // Efecto para hacer scroll cuando se terminan de cargar los detalles
+  useEffect(() => {
+    if (!detallesCargando && eventoSeleccionado && detallesRef.current) {
+      detallesRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [detallesCargando, eventoSeleccionado]);
+
   return (
     <div className="flex justify-center min-h-screen p-10 bg-white text-black">
       <main className="w-full max-w-6xl">
@@ -358,6 +368,138 @@ export default function CalendarioPage() {
                 })}
               </div>
             </div>
+
+            {/* Espacio entre calendario y detalles */}
+            <div className="my-6"></div>
+
+            {/* Detalle del evento seleccionado */}
+            {eventoSeleccionado && (
+              <div
+                ref={detallesRef}
+                className="bg-white rounded-lg shadow-lg border p-6"
+              >
+                <h3 className="text-xl font-semibold mb-4 text-black">Detalle del Evento</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Evento</label>
+                    <p className="text-lg font-semibold text-black">{eventoSeleccionado.evento}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Fecha</label>
+                    <p className="text-black">{new Date(eventoSeleccionado.fecha).toLocaleDateString('es-ES', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      weekday: 'long'
+                    })}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Tipo</label>
+                    <p className="capitalize text-black">{eventoSeleccionado.tipo}</p>
+                  </div>
+                  {/* Mostrar nombre de categoría para carreras */}
+                  {eventoSeleccionado.tipo === "carrera" && eventoSeleccionado.id_categoria && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Categoría</label>
+                      <p className="text-black">
+                        <CategoriaNombre id={eventoSeleccionado.id_categoria} />
+                      </p>
+                    </div>
+                  )}
+                  {/* Mostrar lugar para carreras */}
+                  {eventoSeleccionado.tipo === "carrera" && eventoSeleccionado.lugar && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Lugar</label>
+                      <p className="text-black">{eventoSeleccionado.lugar}</p>
+                    </div>
+                  )}
+
+                  {/* Mostrar loader hasta que los nombres estén resueltos */}
+                  {detallesCargando ? (
+                    <div className="text-gray-500">Cargando detalles...</div>
+                  ) : (
+                    detallesResueltos.length > 0 && (
+                      <>
+                        {/* Control Técnico */}
+                        {eventoSeleccionado.tipo === "control" && detallesResueltos.map((item, idx) => (
+                          <div key={idx} className="space-y-2">
+                            {item.escuderia && (
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Escudería</label>
+                                <div className="text-black">{item.escuderia}</div>
+                              </div>
+                            )}
+                            {item.id_control_tecnico && (
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Id de control técnico</label>
+                                <div className="text-black">{item.id_control_tecnico}</div>
+                              </div>
+                            )}
+                            {item.informacion && (
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Más información</label>
+                                <div className="text-black">{item.informacion}</div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Prueba de Neumáticos */}
+                        {eventoSeleccionado.tipo === "prueba" && detallesResueltos.map((item, idx) => (
+                          <div key={idx} className="space-y-2">
+                            {item.escuderia && (
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Escudería</label>
+                                <div className="text-black">{item.escuderia}</div>
+                              </div>
+                            )}
+                            {item.informacion && (
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Más información</label>
+                                <div className="text-black">{item.informacion}</div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Carrera */}
+                        {eventoSeleccionado.tipo === "carrera" && detallesResueltos.length > 0 && (
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-600">Pilotos</label>
+                            <div>
+                              {[...detallesResueltos]
+                                .sort((a, b) => (b.puntaje ?? 0) - (a.puntaje ?? 0))
+                                .map((item, idx) => {
+                                  const esFutura = new Date(eventoSeleccionado.fecha) > new Date();
+                                  return (
+                                    <div key={idx} className="mb-2">
+                                      <span className="font-semibold">{item.piloto}</span>
+                                      {" - "}
+                                      <span>{item.escuderia}</span>
+                                      {!esFutura && item.puntaje !== undefined && item.puntaje !== null && (
+                                        <>
+                                          <br />
+                                          <span className="text-blue-700">Puntaje: {item.puntaje}</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )
+                  )}
+                  <button
+                    onClick={() => setEventoSeleccionado(null)}
+                    className="w-full mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Panel lateral */}
@@ -517,133 +659,7 @@ export default function CalendarioPage() {
               </div>
             </div>
 
-            {/* Detalle del evento seleccionado */}
-            {eventoSeleccionado && (
-              <div className="bg-white rounded-lg shadow-lg border p-6">
-                <h3 className="text-xl font-semibold mb-4 text-black">Detalle del Evento</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Evento</label>
-                    <p className="text-lg font-semibold text-black">{eventoSeleccionado.evento}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Fecha</label>
-                    <p className="text-black">{new Date(eventoSeleccionado.fecha).toLocaleDateString('es-ES', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                      weekday: 'long'
-                    })}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Tipo</label>
-                    <p className="capitalize text-black">{eventoSeleccionado.tipo}</p>
-                  </div>
-                  {/* Mostrar nombre de categoría para carreras */}
-                  {eventoSeleccionado.tipo === "carrera" && eventoSeleccionado.id_categoria && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Categoría</label>
-                      <p className="text-black">
-                        <CategoriaNombre id={eventoSeleccionado.id_categoria} />
-                      </p>
-                    </div>
-                  )}
-                  {/* Mostrar lugar para carreras */}
-                  {eventoSeleccionado.tipo === "carrera" && eventoSeleccionado.lugar && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Lugar</label>
-                      <p className="text-black">{eventoSeleccionado.lugar}</p>
-                    </div>
-                  )}
-
-                  {/* Mostrar loader hasta que los nombres estén resueltos */}
-                  {detallesCargando ? (
-                    <div className="text-gray-500">Cargando detalles...</div>
-                  ) : (
-                    detallesResueltos.length > 0 && (
-                      <>
-                        {/* Control Técnico */}
-                        {eventoSeleccionado.tipo === "control" && detallesResueltos.map((item, idx) => (
-                          <div key={idx} className="space-y-2">
-                            {item.escuderia && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-600">Escudería</label>
-                                <div className="text-black">{item.escuderia}</div>
-                              </div>
-                            )}
-                            {item.id_control_tecnico && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-600">Id de control técnico</label>
-                                <div className="text-black">{item.id_control_tecnico}</div>
-                              </div>
-                            )}
-                            {item.informacion && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-600">Más información</label>
-                                <div className="text-black">{item.informacion}</div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-
-                        {/* Prueba de Neumáticos */}
-                        {eventoSeleccionado.tipo === "prueba" && detallesResueltos.map((item, idx) => (
-                          <div key={idx} className="space-y-2">
-                            {item.escuderia && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-600">Escudería</label>
-                                <div className="text-black">{item.escuderia}</div>
-                              </div>
-                            )}
-                            {item.informacion && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-600">Más información</label>
-                                <div className="text-black">{item.informacion}</div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-
-                        {/* Carrera */}
-                        {eventoSeleccionado.tipo === "carrera" && detallesResueltos.map((item, idx) => {
-                          // Verifica si la carrera es futura
-                          const esFutura = new Date(eventoSeleccionado.fecha) > new Date();
-                          return (
-                            <div key={idx} className="space-y-2">
-                              {item.piloto && (
-                                <div>
-                                  <label className="text-sm font-medium text-gray-600">Piloto</label>
-                                  <div className="text-black">{item.piloto}</div>
-                                </div>
-                              )}
-                              {item.escuderia && (
-                                <div>
-                                  <label className="text-sm font-medium text-gray-600">Escudería</label>
-                                  <div className="text-black">{item.escuderia}</div>
-                                </div>
-                              )}
-                              {/* Mostrar puntaje solo si la carrera NO es futura */}
-                              {!esFutura && item.puntaje !== undefined && item.puntaje !== null && (
-                                <div>
-                                  <label className="text-sm font-medium text-gray-600">Puntaje</label>
-                                  <div className="text-black">{item.puntaje}</div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </>
-                    )
-                  )}
-                  <button
-                    onClick={() => setEventoSeleccionado(null)}
-                    className="w-full mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    Cerrar
-                  </button>
-                </div>
-              </div>
-            )}
+            
           </div>
         </div>
       </main>
