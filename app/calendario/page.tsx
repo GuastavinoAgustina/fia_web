@@ -462,28 +462,33 @@ export default function CalendarioPage() {
                         ))}
 
                         {/* Carrera */}
-                        {eventoSeleccionado.tipo === "carrera" && detallesResueltos.map((item, idx) => (
-                          <div key={idx} className="space-y-2">
-                            {item.piloto && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-600">Piloto</label>
-                                <div className="text-black">{item.piloto}</div>
-                              </div>
-                            )}
-                            {item.escuderia && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-600">Escudería</label>
-                                <div className="text-black">{item.escuderia}</div>
-                              </div>
-                            )}
-                            {item.puntaje !== undefined && item.puntaje !== null && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-600">Puntaje</label>
-                                <div className="text-black">{item.puntaje}</div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                        {eventoSeleccionado.tipo === "carrera" && detallesResueltos.map((item, idx) => {
+                          // Verifica si la carrera es futura
+                          const esFutura = new Date(eventoSeleccionado.fecha) > new Date();
+                          return (
+                            <div key={idx} className="space-y-2">
+                              {item.piloto && (
+                                <div>
+                                  <label className="text-sm font-medium text-gray-600">Piloto</label>
+                                  <div className="text-black">{item.piloto}</div>
+                                </div>
+                              )}
+                              {item.escuderia && (
+                                <div>
+                                  <label className="text-sm font-medium text-gray-600">Escudería</label>
+                                  <div className="text-black">{item.escuderia}</div>
+                                </div>
+                              )}
+                              {/* Mostrar puntaje solo si la carrera NO es futura */}
+                              {!esFutura && item.puntaje !== undefined && item.puntaje !== null && (
+                                <div>
+                                  <label className="text-sm font-medium text-gray-600">Puntaje</label>
+                                  <div className="text-black">{item.puntaje}</div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </>
                     )
                   )}
