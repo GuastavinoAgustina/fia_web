@@ -44,7 +44,7 @@ export default function PilotoCard({ piloto, escuderiaContexto , colorFondo}: Pi
         </div>
         
         {/* Lado Derecho: Foto del Piloto */}
-        <div className="relative flex-shrink-0 basis-72 h-auto">
+        <div className="relative flex-shrink-0 basis-70 h-auto">
           {fotoUrl.startsWith('data:') ? (
             <img
                 src={fotoUrl}

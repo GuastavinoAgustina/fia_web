@@ -192,7 +192,7 @@ export default function PerfilesPage() {
   };
 
   return (
-    <div className="flex justify-center items-start min-h-screen">
+    <div className="flex justify-center items-start min-h-screen bg-white">
       <main className="p-10">
         {/* Encabezado */}
         <div className="flex justify-between items-center">

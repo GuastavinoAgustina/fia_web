@@ -2,8 +2,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js"; 
-import { Escuderia } from "../escuderias/page";
 import Link from "next/link";
+import { Escuderia } from "@/app/client/escuderias/page";
 import PilotoCard from "@/components/piloto-card";
 
 const supabase = createClient(

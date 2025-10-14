@@ -1,19 +1,20 @@
-import MainHeader from '../../components/main-header-user-view'; // Importa el nuevo componente
+// app/client/layout.tsx
+import MainHeader, {NavItem} from '../../components/main-header-user-view';
+
+const clientNavItems: NavItem[] = [
+  { name: 'PILOTOS', href: '/client/pilotos' },
+  { name: 'ESCUDERÍAS', href: '/client/escuderias' },
+  { name: 'CARRERAS', href: '/carreras' },
+  { name: 'CATEGORÍAS', href: '/categorias' },
+];
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      {/* 1. El Header y la Navbar se cargan PRIMERO
-        Se mostrará arriba de CUALQUIER página dentro de 'app/client'
-      */}
-      <MainHeader />
-      
-      {/* 2. El 'children' es la página actual (Home, Pilotos, Escuderías)
-        El contenido de la página se renderiza debajo del Header.
-      */}
-       <main className="bg-black">
-        {children}
-      </main>
-    </>
+    <div>
+      <MainHeader navItems={clientNavItems} />
+        <main className="bg-black">
+          {children}
+        </main>
+    </div>
   );
 }

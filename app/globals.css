@@ -168,3 +168,24 @@ input[type="date"] {
     transform: translateY(-50%);
   }
 }
+
+/* ===============================
+   Fuente Formula 1 personalizada
+   =============================== */
+
+@font-face {
+  font-family: "Formula1";
+  src: url("../fonts/Formula1-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.f1-regular {
+  font-family: "Formula1", sans-serif;
+  font-weight: 400;
+}
+
+/* ===============================
+   Fuente Formula 1 personalizada
+   =============================== */

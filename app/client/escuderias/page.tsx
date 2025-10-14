@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js"; 
 import Link from "next/link";
 import EscuderiaCard from "@/components/escuderia-card";
-import { Piloto } from '../pilotos/page'
-import { calcularEdad } from '../pilotos/page'
+import { Piloto, calcularEdad } from '@/app/client/pilotos/page'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
