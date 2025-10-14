@@ -38,6 +38,23 @@ export default function CalendarioPage() {
   // Estado para guardar los detalles con nombres ya resueltos
   const [detallesResueltos, setDetallesResueltos] = useState<any[]>([]);
 
+  // Estado para filtros de búsqueda
+  const [filtroFecha, setFiltroFecha] = useState("");
+  const [filtroLugar, setFiltroLugar] = useState("");
+  const [filtroCategoria, setFiltroCategoria] = useState("");
+
+  // Estado para resultados filtrados
+  const [resultadosBusqueda, setResultadosBusqueda] = useState<Evento[]>([]);
+
+  // Estado para mostrar/ocultar el menú de filtros
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  // Estado para filtros temporales antes de buscar
+  const [tempFiltroFecha, setTempFiltroFecha] = useState("");
+  const [tempFiltroLugar, setTempFiltroLugar] = useState("");
+  const [tempFiltroCategoria, setTempFiltroCategoria] = useState("");
+  // Estado para saber si se hizo una búsqueda
+  const [busquedaRealizada, setBusquedaRealizada] = useState(false);
+
   // Cargar eventos desde la base de datos
   useEffect(() => {
     fetchEventos();
@@ -242,6 +259,22 @@ export default function CalendarioPage() {
     })();
   }, [eventoSeleccionado, detalleExtra]);
 
+  // Filtrar carreras cuando cambian los filtros (solo si se hizo búsqueda)
+  useEffect(() => {
+    if (!busquedaRealizada) {
+      setResultadosBusqueda([]);
+      return;
+    }
+    const carreras = eventos.filter(e => e.tipo === "carrera");
+    const filtradas = carreras.filter(c => {
+      const coincideFecha = filtroFecha ? c.fecha.startsWith(filtroFecha) : true;
+      const coincideLugar = filtroLugar ? c.lugar?.toLowerCase().includes(filtroLugar.toLowerCase()) : true;
+      const coincideCategoria = filtroCategoria ? String(c.id_categoria) === filtroCategoria : true;
+      return coincideFecha && coincideLugar && coincideCategoria;
+    });
+    setResultadosBusqueda(filtradas);
+  }, [filtroFecha, filtroLugar, filtroCategoria, eventos, busquedaRealizada]);
+
   return (
     <div className="flex justify-center min-h-screen p-10 bg-white text-black">
       <main className="w-full max-w-6xl">
@@ -329,6 +362,116 @@ export default function CalendarioPage() {
 
           {/* Panel lateral */}
           <div className="space-y-6">
+            {/* Buscar carrera */}
+            <div className="bg-white rounded-lg shadow-lg border p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-black">Buscar carrera</h3>
+                <button
+                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                  onClick={() => setMostrarFiltros((prev) => !prev)}
+                >
+                  Filtrar
+                </button>
+              </div>
+              {/* Dropdown de filtros */}
+              {mostrarFiltros && (
+                <form className="space-y-3 mb-4 bg-white p-4 rounded shadow" onSubmit={e => {
+                  e.preventDefault();
+                  setFiltroFecha(tempFiltroFecha);
+                  setFiltroLugar(tempFiltroLugar);
+                  setFiltroCategoria(tempFiltroCategoria);
+                  setBusquedaRealizada(true);
+                  setMostrarFiltros(false);
+                }}>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Fecha</label>
+                    <input
+                      type="date"
+                      className="border rounded px-2 py-1 w-full bg-white"
+                      style={{ minWidth: '100%' }}
+                      value={tempFiltroFecha}
+                      onChange={e => setTempFiltroFecha(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Circuitos</label>
+                    <div className="relative">
+                      <select
+                        className="border rounded px-2 py-1 w-full bg-white"
+                        style={{ minWidth: '100%' }}
+                        size={Math.min(5, [...new Set(eventos.filter(e => e.tipo === "carrera").map(e => e.lugar))].length || 1)}
+                        value={tempFiltroLugar}
+                        onChange={e => setTempFiltroLugar(e.target.value)}
+                      >
+                        <option value="" className="rounded px-2 py-1 w-full bg-white text-black" title="Todos">Todos</option>
+                        {[...new Set(eventos.filter(e => e.tipo === "carrera").map(e => e.lugar))]
+                          .filter(Boolean)
+                          .map(lugar => (
+                            <option key={lugar} value={lugar} className = "rounded px-2 py-1 w-full bg-white text-black truncate" title={ lugar } >{lugar}</option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Categoría</label>
+                    <div className="relative">
+                      <select
+                        className="border rounded px-2 py-1 w-full bg-white"
+                        style={{ minWidth: '100%' }}
+                        size={Math.min(5, [...new Set(eventos.filter(e => e.tipo === "carrera").map(e => e.id_categoria))].length || 1)}
+                        value={tempFiltroCategoria}
+                        onChange={e => setTempFiltroCategoria(e.target.value)}
+                      >
+                        <option value="" className = "rounded px-2 py-1 w-full bg-white text-black">Todas</option>
+                        {[...new Set(eventos.filter(e => e.tipo === "carrera").map(e => e.id_categoria))]
+                          .filter(Boolean)
+                          .map(id => (
+                            <option key={id} value={id} className = "rounded px-2 py-1 w-full bg-white text-black">
+                              <CategoriaNombre id={id} />
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                    >
+                      Buscar
+                    </button>
+                  </div>
+                </form>
+              )}
+              {/* Resultados de búsqueda */}
+              <div className="mt-4">
+                {!busquedaRealizada ? (
+                  <div className="text-gray-500">Seleccione filtros para empezar a buscar</div>
+                ) : resultadosBusqueda.length === 0 ? (
+                  <div className="text-gray-500">No se encontraron carreras.</div>
+                ) : (
+                  <ul className="space-y-2">
+                    {resultadosBusqueda.map(c => (
+                      <li
+                        key={c.id_carrera}
+                        className="p-2 border rounded hover:bg-gray-50 cursor-pointer"
+                        onClick={() => setEventoSeleccionado(c)}
+                      >
+                        <div className="font-semibold">{c.evento}</div>
+                        <div className="text-xs text-gray-600">
+                          {new Date(c.fecha).toLocaleDateString('es-ES')}
+                          {" | "}
+                          {c.lugar}
+                          {" | "}
+                          <CategoriaNombre id={c.id_categoria} />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
             {/* Leyenda */}
             <div className="bg-white rounded-lg shadow-lg border p-6">
               <h3 className="text-lg font-semibold mb-3 text-black">Leyenda</h3>
@@ -530,7 +673,7 @@ function EscuderiaNombre({ id, onLoaded }: { id: number, onLoaded?: () => void }
   }, [id, onLoaded]);
 
   if (nombre === null) return null;
-  return <span>{nombre}</span>;
+  return <>{nombre}</>;
 }
 
 // Componente para mostrar el nombre del piloto dado su id
@@ -555,7 +698,7 @@ function NombrePiloto({ id, onLoaded }: { id: number, onLoaded?: () => void }) {
   }, [id, onLoaded]);
 
   if (nombre === null) return null;
-  return <span>{nombre}</span>;
+  return <>{nombre}</>;
 }
 
 // Componente para mostrar el nombre de la categoría dado su id
@@ -577,5 +720,5 @@ function CategoriaNombre({ id }: { id: number }) {
   }, [id]);
 
   if (nombre === null) return null;
-  return <span>{nombre}</span>;
+  return <>{nombre}</>;
 }
