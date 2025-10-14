@@ -10,7 +10,7 @@
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
+    --primary: 0 84% 60%; /* Rojo F1 */
     --primary-foreground: 0 0% 98%;
     --secondary: 0 0% 96.1%;
     --secondary-foreground: 0 0% 9%;
@@ -74,4 +74,97 @@
 
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-in-out;
+}
+
+input[type="date"] {
+  position: relative;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.4; 
+  transition: opacity 0.2s;
+  color-scheme: back; 
+  
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  
+  width: 16px;
+  height: 16px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Intentar personalizar el calendario popup (limitado) */
+input[type="date"]::-webkit-datetime-edit {
+  color-scheme: light;
+}
+
+input[type="date"]::-webkit-inner-spin-button {
+  display: none;
+}
+
+/* Configuración del esquema de colores para el calendario */
+input[type="date"] {
+  color-scheme: light;
+  direction: ltr;
+}
+
+/* Estilos experimentales para el popup del calendario */
+@supports (-webkit-appearance: none) {
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    color-scheme: light !important;
+    filter: brightness(1.2) contrast(0.8);
+  }
+}
+
+/* Wrapper para controlar la posición del calendario */
+.date-input-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+/* Posicionamiento del input de fecha */
+.date-input-wrapper input[type="date"] {
+  width: 100%;
+  text-align: left;
+}
+
+/* Intentar influir en la posición del popup del calendario */
+.date-input-wrapper input[type="date"]:focus,
+.date-input-wrapper input[type="date"]:active {
+  position: relative;
+  z-index: 1000;
+  /* Crear un contexto de posicionamiento */
+}
+
+/* Técnica avanzada: usar direction para influir en la posición */
+.date-right {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Usar transform para intentar influir en el popup */
+.date-input-wrapper:focus-within {
+  transform: translateX(0);
+  position: relative;
+}
+
+/* Estilo específico para Chrome/Safari */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .date-input-wrapper input[type="date"] {
+    position: relative;
+  }
+  
+  .date-input-wrapper input[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
 }
