@@ -19,7 +19,7 @@ export default function PilotoCard({ piloto, escuderiaContexto , colorFondo}: Pi
   const edad = piloto.edad || 'N/A'; 
   const pais = piloto.pais || 'N/A';
   const proximaCarrera =  piloto.proximaCarrera || "Sin próxima carrera";
-  const bgColor = colorFondo? '#' + colorFondo : "#ffffff";
+  const bgColor = colorFondo? '#' + colorFondo : "#ec0000";
   const textColor = escuderiaContexto? '#000000ff' : '#ffffffff';
   const categoria = piloto.categoria || "Sin categoría";
 

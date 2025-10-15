@@ -65,7 +65,7 @@ export default function EscuderiaCar({ escuderia }:
         <div className="p-4 border-t border-white/50 space-y-4">
           {pilotos.length > 0 ? (
             pilotos.map((piloto) => (
-              <PilotoCard key={piloto.id_piloto} piloto={piloto} escuderiaContexto={escuderia.nombre}/>
+              <PilotoCard key={piloto.id_piloto} piloto={piloto} escuderiaContexto={escuderia.nombre} colorFondo="ffffff"/>
             ))
           ) : (
             <p className="text-white/80">No hay pilotos asignados.</p>
