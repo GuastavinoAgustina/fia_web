@@ -11,7 +11,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { PiTShirt } from "react-icons/pi";
 
 type PilotoEnEscuderia = {
   id_piloto: number;
