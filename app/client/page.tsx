@@ -1,9 +1,8 @@
 // app/client/page.tsx
 "use client";
 
+import { redirect } from "next/navigation";
+
 export default function ClientHomePage() {
-  return (
-    <div className="p-10 bg-white">
-    </div>
-  );
+  redirect("/client/pilotos");
 }
