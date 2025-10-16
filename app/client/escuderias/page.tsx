@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js"; 
 import Link from "next/link";
 import EscuderiaCard from "@/components/escuderia-card";
-import { Piloto } from '../pilotos/page'
-import { calcularEdad } from '../pilotos/page'
+import { Piloto, calcularEdad } from '@/app/client/pilotos/page'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -112,8 +111,11 @@ export default function EscuderiasPage() {
                   onChange={(e) => setBusqueda(e.target.value)}
                   className="w-3/4 md:w-2/3 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <Link href="/client/" className="text-blue-600 hover:underline"> 
-                    Página principal
+                <Link 
+                  href="/" 
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+                >
+                  ← Página principal
                 </Link>
             </div>
 

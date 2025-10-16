@@ -1,6 +1,8 @@
 // components/PilotoCard.tsx
 import Image from 'next/image';
 import { Piloto } from '../app/client/pilotos/page';
+import { FlagIcon, FlagIconCode } from "react-flag-kit"
+import { getCountryCode } from '@/lib/country';
 
 type PilotoCardProps = {
   piloto: Piloto;
@@ -18,8 +20,9 @@ export default function PilotoCard({ piloto, escuderiaContexto , colorFondo}: Pi
   const fotoUrl = piloto.foto || '/icon.png'; 
   const edad = piloto.edad || 'N/A'; 
   const pais = piloto.pais || 'N/A';
+  const codigoPais = getCountryCode(pais) || "";
   const proximaCarrera =  piloto.proximaCarrera || "Sin próxima carrera";
-  const bgColor = colorFondo? '#' + colorFondo : "#ffffff";
+  const bgColor = colorFondo? '#' + colorFondo : "#ec0000";
   const textColor = escuderiaContexto? '#000000ff' : '#ffffffff';
   const categoria = piloto.categoria || "Sin categoría";
 
@@ -34,9 +37,12 @@ export default function PilotoCard({ piloto, escuderiaContexto , colorFondo}: Pi
       
         {/* Lado Izquierdo: Información del Piloto */}
         <div className="p-8 space-y-3 flex-grow z-10">
-          <p className="text-xl font-semibold">Nombre: {piloto.nombre}</p>
+          <p className="f1-regular text-xl font-semibold">{piloto.nombre}</p>
           <p className="text-xl font-semibold">Edad: {edad} años</p> 
-          <p className="text-xl font-semibold">País: {pais}</p>
+              <div className="flex items-center space-x-2">
+                <FlagIcon code={codigoPais as FlagIconCode} size={32} />
+                <span className="text-xl font-semibold">{pais}</span>
+              </div>
           <p className="text-xl font-semibold">Escudería: {escuderiasMostrar.join(", ")}</p>
           <p className="text-xl font-semibold">Rol : {rol}</p>
           <p className="text-xl font-semibold">Categoría : {categoria}</p>
@@ -44,7 +50,7 @@ export default function PilotoCard({ piloto, escuderiaContexto , colorFondo}: Pi
         </div>
         
         {/* Lado Derecho: Foto del Piloto */}
-        <div className="relative flex-shrink-0 basis-72 h-auto">
+        <div className="relative flex-shrink-0 basis-70 h-auto">
           {fotoUrl.startsWith('data:') ? (
             <img
                 src={fotoUrl}

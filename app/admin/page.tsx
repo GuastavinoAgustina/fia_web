@@ -1,7 +1,7 @@
-// app/client/page.tsx
+// app/admin/page.tsx
 "use client";
 
-export default function ClientHomePage() {
+export default function AdminHomePage() {
   return (
     <div className="p-10 bg-white">
     </div>

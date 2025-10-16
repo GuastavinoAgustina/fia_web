@@ -2,8 +2,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js"; 
-import { Escuderia } from "../escuderias/page";
 import Link from "next/link";
+import { Escuderia } from "@/app/client/escuderias/page";
 import PilotoCard from "@/components/piloto-card";
 
 const supabase = createClient(
@@ -131,7 +131,7 @@ export default function PilotosPage() {
               edad,
               pais: p.pais,
               escuderias: escuderiasPiloto.length > 0 ? escuderiasPiloto : ["Sin escudería"],
-              titular: relacionesPiloto.some((rel) => rel.esTitular) || null,
+              titular: relacionesPiloto[0]?.esTitular ?? null,
               proximaCarrera,
               categoria,
             };
@@ -169,9 +169,12 @@ export default function PilotosPage() {
         <div className="p-10 bg-white text-black">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold">Listado de Pilotos</h1>
-                <Link href="/client/" className="text-blue-600 hover:underline"> 
-                    Página principal
-                </Link>
+                        <Link 
+                            href="/" 
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+                        >
+                            ← Página principal
+                        </Link>
             </div>
 
             <hr className="mb-6 border-gray-300" />
