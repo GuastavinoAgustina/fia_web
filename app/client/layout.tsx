@@ -12,7 +12,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <div>
       <MainHeader navItems={clientNavItems} />
-        <main className="bg-black">
+        <main>
           {children}
         </main>
     </div>
