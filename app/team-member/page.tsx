@@ -1,9 +1,10 @@
 // app/team-member/page.tsx
 "use client";
 
+import { redirect } from "next/navigation";
+
 export default function TeamMemberHomePage() {
   return (
-    <div className="p-10 bg-white">
-    </div>
+    redirect("/team-member/calendario")
   );
 }
