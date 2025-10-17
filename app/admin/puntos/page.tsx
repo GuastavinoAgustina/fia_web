@@ -148,7 +148,7 @@ export default function Home() {
               <p className="text-gray-600 mt-1">Administra el puntaje de los pilotos en una carrera</p>
             </div>
             <Link 
-                href="/" 
+                href="/admin" 
                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
                 >
                 ← Página principal

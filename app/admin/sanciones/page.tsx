@@ -151,15 +151,24 @@ export default function SancionesPorEscuderia() {
   };
 
   return (
-    // CAMBIO 1: Fondo de página a blanco y texto principal a negro
-    <div className="flex justify-center min-h-screen p-10 bg-white text-black">
-      <main className="w-full max-w-5xl">
-        <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">Sanciones por Escudería</h1>
-            <Link href="/client/" className="text-blue-600 hover:underline"> 
-                Página principal
-            </Link>
-        </div>
+    <div className="min-h-screen bg-white">
+          <div className="max-w-6xl mx-auto p-6 space-y-6">
+    
+            {/* Encabezado */}
+            <div className="bg-white border-b border-gray-200 pb-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Sanciones Aplicadas</h1>
+                  <p className="text-gray-600 mt-1">Visualiza las sanciones registradas</p>
+                </div>
+                  <Link 
+                    href="/admin" 
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+                  >
+                    ← Página principal
+                  </Link>
+              </div>
+            </div>
         
         <div className="space-y-4">
           {escuderias.map(esc => {
@@ -233,7 +242,7 @@ export default function SancionesPorEscuderia() {
             );
           })}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
