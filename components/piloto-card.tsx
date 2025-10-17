@@ -36,14 +36,14 @@ export default function PilotoCard({ piloto, escuderiaContexto , colorFondo}: Pi
     >
       
         {/* Lado Izquierdo: Información del Piloto */}
-        <div className="p-8 space-y-3 flex-grow z-10">
+        <div className="p-8 space-y-3 flex flex-col justify-center flex-grow z-10">
           <p className="f1-regular text-xl font-semibold">{piloto.nombre}</p>
           <p className="text-xl font-semibold">Edad: {edad} años</p> 
               <div className="flex items-center space-x-2">
                 <FlagIcon code={codigoPais as FlagIconCode} size={32} />
                 <span className="text-xl font-semibold">{pais}</span>
               </div>
-          <p className="text-xl font-semibold">Escudería: {escuderiasMostrar.join(", ")}</p>
+                {!escuderiaContexto ? <p className="text-xl font-semibold">Escudería: {escuderiasMostrar.join(", ")}</p> : ""}
           <p className="text-xl font-semibold">Rol : {rol}</p>
           <p className="text-xl font-semibold">Categoría : {categoria}</p>
           <p className="text-xl font-semibold">Próxima Carrera : {proximaCarrera}</p>
