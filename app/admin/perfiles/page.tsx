@@ -11,6 +11,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/components/toast-provider"
 
 type PilotoEnEscuderia = {
   id_piloto: number;
@@ -38,6 +39,8 @@ export default function EscuderiasPage() {
   const [nuevoColor, setNuevoColor] = useState("#000000");
   const [nuevoLogo, setNuevoLogo] = useState<File | null>(null);
   const [escuderiaEditando, setEscuderiaEditando] = useState<Escuderia | null>(null);
+
+  const { addToast } = useToast()
 
   // 🔹 Cargar escuderías al iniciar
   useEffect(() => {
@@ -101,7 +104,7 @@ export default function EscuderiasPage() {
       console.error(error);
       alert("Error al crear la escudería");
     } else {
-      alert("Escudería creada correctamente");
+      addToast(`Escudería "${nuevaEscuderia}" creada exitosamente`)
       setNuevaEscuderia("");
       setNuevoColor("#000000");
       setNuevoLogo(null);
@@ -161,6 +164,7 @@ export default function EscuderiasPage() {
 
     if (error) console.error(error);
     else {
+      addToast(`Escudería "${escuderia.nombre}" guardada exitosamente`)
       setEscuderiaEditando(null);
       cargarEscuderias();
     }
@@ -169,7 +173,7 @@ export default function EscuderiasPage() {
   // 🔹 Eliminar escudería
   async function handleEliminarEscuderia(id: number) {
     if (!confirm("¿Eliminar esta escudería?")) return;
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("Escuderia")
       .delete()
       .eq("id_escuderia", id);
@@ -178,6 +182,7 @@ export default function EscuderiasPage() {
       console.error(error);
       alert("Error al eliminar");
     } else {
+      addToast(`Escudería eliminada exitosamente`)
       cargarEscuderias();
     }
   }
@@ -240,7 +245,7 @@ async function confirmarAgregarPilotos() {
     console.error(error);
     alert("Error agregando pilotos");
   } else {
-    alert("Pilotos agregados correctamente");
+    addToast(`Pilotos agregados exitosamente`)
     setModalEscuderiaId(null);
     cargarEscuderias(); // recargar escuderías para ver los pilotos nuevos
   }
@@ -270,7 +275,10 @@ async function handleCambiarRolPiloto(
       .match({ id_piloto, id_escuderia });
 
     if (error) console.error(error);
-    else cargarEscuderias();
+    else{
+      addToast(`Pilotos desvinculado de la escudería exitosamente`)
+      cargarEscuderias();
+    }
   }
 
  return (
