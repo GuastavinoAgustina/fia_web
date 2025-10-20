@@ -10,6 +10,7 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import Link from "next/link";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!)
 
@@ -237,53 +238,65 @@ export default function Campeonato() {
 
 
     return (
-        <main className="bg-white">
-            <div className="flex flex-col items-center justify-center bg-white">
-                <h1 className="mt-4 text-l md:text-l font-bold text-gray-800 uppercase tracking-wide"> Categoría:</h1>
-                <DropdownMenu>
-                    <DropdownMenuTrigger className="mt-1 border bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg flex justify-between items-center">
-                        {selectedCategoria ? selectedCategoria.nombre : "Seleccione una categoría"}
-                    </DropdownMenuTrigger>
-
-                    <DropdownMenuContent className="w-full">
-                        {listaCategorias.map((cat) => (
-                            <DropdownMenuItem
-                                key={cat.id_categoria}
-                                onSelect={() => handleSelectCategoria(cat.nombre)}
-                                className="cursor-pointer"
-                            >
-                                {cat.nombre}
-                            </DropdownMenuItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-            </div>
-
-            {
-                selectedCategoria && (
-                    <div className="p-10 min-h-screen flex flex-col items-center">
-                        <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3">
-                            <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-3">
-                                <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
-                                Campeonato de pilotos
-                            </p>
-                            {Array.from(pilotMap.values()).sort((a, b) => b.puntos - a.puntos).map(piloto => (
-                                <PilotoCard key={piloto.id_piloto} piloto={piloto} colorFondo={piloto.color_escuderia!} />
-                            ))}
-                        </div>
-                        <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3">
-                            <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-3">
-                                <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
-                                Campeonato de constructores
-                            </p>
-                            {Array.from(teamMap.values()).sort((a, b) => b.puntos - a.puntos).map((escuderia) => (
-                                <EscuderiaCard key={escuderia.id_escuderia} escuderia={escuderia} />
-                            ))}
-                        </div>
+        <div className="flex justify-center min-h-screen p-10 bg-white text-black">
+            <main className="w-full max-w-6xl">
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-bold">Campeonatos</h1>
                     </div>
-                )}
-        </main>
+                    <Link href="/" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+                        ← Página principal
+                    </Link>
+                </div>
+                <div className="bg-white rounded-lg shadow-lg border p-6">
+                    <div className="flex flex-col justify-center bg-white">
+                        <h1 className="mt-4 text-l md:text-l font-bold text-gray-800 uppercase tracking-wide"> Categoría:</h1>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger className="mt-1 border bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg flex justify-between items-center">
+                                {selectedCategoria ? selectedCategoria.nombre : "Seleccione una categoría"}
+                            </DropdownMenuTrigger>
+
+                            <DropdownMenuContent className="w-full">
+                                {listaCategorias.map((cat) => (
+                                    <DropdownMenuItem
+                                        key={cat.id_categoria}
+                                        onSelect={() => handleSelectCategoria(cat.nombre)}
+                                        className="cursor-pointer"
+                                    >
+                                        {cat.nombre}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                    </div>
+
+                    {
+                        selectedCategoria && (
+                            <div className="p-10 min-h-screen flex flex-col items-center">
+                                <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3">
+                                    <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-3">
+                                        <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
+                                        Campeonato de pilotos
+                                    </p>
+                                    {Array.from(pilotMap.values()).sort((a, b) => b.puntos - a.puntos).map(piloto => (
+                                        <PilotoCard key={piloto.id_piloto} piloto={piloto} colorFondo={piloto.color_escuderia!} />
+                                    ))}
+                                </div>
+                                <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3">
+                                    <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-3">
+                                        <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
+                                        Campeonato de constructores
+                                    </p>
+                                    {Array.from(teamMap.values()).sort((a, b) => b.puntos - a.puntos).map((escuderia) => (
+                                        <EscuderiaCard key={escuderia.id_escuderia} escuderia={escuderia} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                </div>
+            </main>
+        </div>
     )
 }
 
@@ -336,6 +349,7 @@ function PilotoCard({ piloto, colorFondo }: PilotoCardProps) {
             </div>
 
         </div>
+
     );
 }
 

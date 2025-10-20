@@ -293,8 +293,8 @@ export default function CalendarioPage() {
             <CalendarIcon className="h-8 w-8 text-red-600" />
             <h1 className="text-3xl font-bold">Calendario de Eventos</h1>
           </div>
-          <Link href="/" className="text-blue-600 hover:underline">
-            Página principal
+          <Link href="/" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+            ← Página principal
           </Link>
         </div>
 
@@ -549,7 +549,7 @@ export default function CalendarioPage() {
                         {[...new Set(eventos.filter(e => e.tipo === "carrera").map(e => e.lugar))]
                           .filter(Boolean)
                           .map(lugar => (
-                            <option key={lugar} value={lugar} className = "rounded px-2 py-1 w-full bg-white text-black truncate" title={ lugar } >{lugar}</option>
+                            <option key={lugar} value={lugar} className="rounded px-2 py-1 w-full bg-white text-black truncate" title={lugar} >{lugar}</option>
                           ))}
                       </select>
                     </div>
@@ -564,11 +564,11 @@ export default function CalendarioPage() {
                         value={tempFiltroCategoria}
                         onChange={e => setTempFiltroCategoria(e.target.value)}
                       >
-                        <option value="" className = "rounded px-2 py-1 w-full bg-white text-black">Todas</option>
+                        <option value="" className="rounded px-2 py-1 w-full bg-white text-black">Todas</option>
                         {[...new Set(eventos.filter(e => e.tipo === "carrera").map(e => e.id_categoria))]
                           .filter(Boolean)
                           .map(id => (
-                            <option key={id} value={id} className = "rounded px-2 py-1 w-full bg-white text-black">
+                            <option key={id} value={id} className="rounded px-2 py-1 w-full bg-white text-black">
                               <CategoriaNombre id={id} />
                             </option>
                           ))}
@@ -628,7 +628,7 @@ export default function CalendarioPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Próximos eventos */}
             <div className="bg-white rounded-lg shadow-lg border p-6">
               <h3 className="text-xl font-semibold mb-4 text-black">Próximos Eventos</h3>
@@ -659,7 +659,7 @@ export default function CalendarioPage() {
               </div>
             </div>
 
-            
+
           </div>
         </div>
       </main>
