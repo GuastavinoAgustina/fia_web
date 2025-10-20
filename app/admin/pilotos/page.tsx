@@ -383,7 +383,7 @@ export default function PilotosPage() {
                             <p className="text-gray-600 mt-1">Administra la información de los pilotos de F1</p>
                         </div>
                         <Link 
-                            href="/" 
+                            href="/admin" 
                             className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
                         >
                             ← Página principal

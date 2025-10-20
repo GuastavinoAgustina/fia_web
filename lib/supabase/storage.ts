@@ -63,3 +63,35 @@ export function obtenerUrlFoto(fileName: string): string {
   
   return data.publicUrl
 }
+
+export async function subirLogoEscuderia(file: File, escuderiaId: string): Promise<string | null> {
+  try {
+    // Generar nombre único para la imagen
+    const timestamp = Date.now()
+    const extension = file.name.split('.').pop()
+    const fileName = `escuderia_${escuderiaId}_${timestamp}.${extension}`
+    
+    // Subir archivo al bucket 'fotoCorredor'
+    const { data, error } = await supabase.storage
+      .from('logoEscuderia')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+    
+    if (error) {
+      console.error('Error subiendo foto:', error)
+      return null
+    }
+    
+    // Obtener URL pública de la imagen
+    const { data: publicUrlData } = supabase.storage
+      .from('logoEscuderia')
+      .getPublicUrl(fileName)
+    
+    return publicUrlData.publicUrl
+  } catch (error) {
+    console.error('Error en subirLogoEscuderia:', error)
+    return null
+  }
+}

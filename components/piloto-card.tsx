@@ -23,7 +23,7 @@ export default function PilotoCard({ piloto, escuderiaContexto , colorFondo}: Pi
   const codigoPais = getCountryCode(pais) || "";
   const proximaCarrera =  piloto.proximaCarrera || "Sin próxima carrera";
   const bgColor = colorFondo? '#' + colorFondo : "#ec0000";
-  const textColor = escuderiaContexto? '#000000ff' : '#ffffffff';
+  const textColor = (escuderiaContexto || colorClaro(colorFondo))? '#000000ff' : '#ffffffff';
   const categoria = piloto.categoria || "Sin categoría";
 
   return (
@@ -36,14 +36,14 @@ export default function PilotoCard({ piloto, escuderiaContexto , colorFondo}: Pi
     >
       
         {/* Lado Izquierdo: Información del Piloto */}
-        <div className="p-8 space-y-3 flex-grow z-10">
+        <div className="p-8 space-y-3 flex flex-col justify-center flex-grow z-10">
           <p className="f1-regular text-xl font-semibold">{piloto.nombre}</p>
           <p className="text-xl font-semibold">Edad: {edad} años</p> 
               <div className="flex items-center space-x-2">
                 <FlagIcon code={codigoPais as FlagIconCode} size={32} />
                 <span className="text-xl font-semibold">{pais}</span>
               </div>
-          <p className="text-xl font-semibold">Escudería: {escuderiasMostrar.join(", ")}</p>
+                {!escuderiaContexto ? <p className="text-xl font-semibold">Escudería: {escuderiasMostrar.join(", ")}</p> : ""}
           <p className="text-xl font-semibold">Rol : {rol}</p>
           <p className="text-xl font-semibold">Categoría : {categoria}</p>
           <p className="text-xl font-semibold">Próxima Carrera : {proximaCarrera}</p>
@@ -69,4 +69,17 @@ export default function PilotoCard({ piloto, escuderiaContexto , colorFondo}: Pi
         </div>
       </div>
   );
+}
+
+function colorClaro(color? : string) : boolean{
+  if (!color) return false;
+  const r = parseInt(color.substring(0, 2), 16);
+  const g = parseInt(color.substring(2, 4), 16);
+  const b = parseInt(color.substring(4, 6), 16);
+
+  // Calcular luminancia según el estándar perceptual
+  const luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  // Si es muy claro, usar texto negro; si es oscuro, texto blanco
+  return luminancia > 0.6;
 }

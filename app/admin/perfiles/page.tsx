@@ -11,6 +11,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/components/toast-provider"
+import { subirLogoEscuderia } from "@/lib/supabase/storage";
 
 type PilotoEnEscuderia = {
   id_piloto: number;
@@ -36,8 +38,12 @@ export default function EscuderiasPage() {
   const [escuderias, setEscuderias] = useState<Escuderia[]>([]);
   const [nuevaEscuderia, setNuevaEscuderia] = useState("");
   const [nuevoColor, setNuevoColor] = useState("#000000");
+  const [editandoEscuderia, setEditandoEscuderia] = useState<Escuderia | null>(null);
   const [nuevoLogo, setNuevoLogo] = useState<File | null>(null);
-  const [escuderiaEditando, setEscuderiaEditando] = useState<Escuderia | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
+
+  const { addToast } = useToast()
 
   // 🔹 Cargar escuderías al iniciar
   useEffect(() => {
@@ -61,52 +67,105 @@ export default function EscuderiasPage() {
     else setEscuderias(data || []);
   }
 
-  
-  async function subirLogo(file: File): Promise<string | null> {
-    const fileName = `${Date.now()}_${file.name}`;
-    const { data, error } = await supabase.storage
-      .from("logo")
-      .upload(fileName, file);
+  function handleLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNuevoLogo(file);
 
-    if (error) {
-      console.error("Error subiendo logo:", error);
-      return null;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-
-    const { data: urlData } = supabase.storage
-      .from("logo")
-      .getPublicUrl(fileName);
-
-    return urlData.publicUrl;
   }
 
   // 🔹 Crear nueva escudería
   async function handleCrearEscuderia() {
     if (!nuevaEscuderia.trim()) return alert("Debe ingresar un nombre.");
 
-    let logoUrl = null;
-    if (nuevoLogo) logoUrl = await subirLogo(nuevoLogo);
-    console.log(logoUrl)
+    setUploading(true);
 
-    const { error } = await supabase.from("Escuderia").insert([
-      {
+    const nuevaEsc = {
         nombre: nuevaEscuderia,
         color: nuevoColor.replace("#", ""),
-        logo: logoUrl,
         activo: true,
-      },
-    ]);
+    }
+
+    const { data, error } = await supabase
+      .from("Escuderia")
+      .insert(nuevaEsc)
+      .select()
+      .single()
+
+    if (error || !data) {
+      addToast("Error al crear el piloto: ",error?.message)
+      setUploading(false)
+      return
+    }
+
+    // Subir logo si existe
+    let logoUrl = null
+    if (nuevoLogo) {
+      logoUrl = await subirLogoEscuderia(nuevoLogo, data.id_escuderia.toString())
+                
+      // Actualizar el logo con la URL
+      if (logoUrl) {
+        await supabase
+          .from("Escuderia")
+          .update({ logo: logoUrl })
+          .eq("id_escuderia", data.id_escuderia)
+        }
+    }
+  
+    addToast(`Escudería "${nuevaEscuderia}" creada exitosamente`)
+    setNuevaEscuderia("");
+    setNuevoColor("#000000");
+    setNuevoLogo(null);
+    setLogoPreview("");
+    cargarEscuderias();
+     setUploading(false);
+
+  }
+
+  async function handleEditarEscuderia() {
+    if (!editandoEscuderia) return;
+    setUploading(true);
+
+    let logoUrl = editandoEscuderia.logo;
+
+    /*if (nuevoLogo) {
+      const uploaded = await subirLogoEscuderia(nuevoLogo);
+      if (uploaded) logoUrl = uploaded;
+    }*/
+
+    const { error } = await supabase
+      .from("Escuderia")
+      .update({
+        nombre: editandoEscuderia.nombre,
+        color: editandoEscuderia.color?.replace("#", ""),
+        logo: logoUrl,
+      })
+      .eq("id_escuderia", editandoEscuderia.id_escuderia);
 
     if (error) {
-      console.error(error);
-      alert("Error al crear la escudería");
+      console.error("Error al editar escudería:", error);
+      addToast("Error al actualizar escudería");
     } else {
-      alert("Escudería creada correctamente");
-      setNuevaEscuderia("");
-      setNuevoColor("#000000");
+      addToast(`Escudería "${editandoEscuderia.nombre}" actualizada correctamente`);
+      setEscuderias((prev) =>
+        prev.map((e) =>
+          e.id_escuderia === editandoEscuderia.id_escuderia
+            ? { ...editandoEscuderia, logo: logoUrl }
+            : e
+        )
+      );
+      setEditandoEscuderia(null);
       setNuevoLogo(null);
-      cargarEscuderias();
+      setLogoPreview("");
     }
+
+    setUploading(false);
   }
   
   function EditarEscuderia({
@@ -137,34 +196,6 @@ export default function EscuderiasPage() {
   );
 }
 
-  async function handleGuardarEdicion(
-    escuderia: Escuderia,
-    nuevoNombre: string,
-    nuevoColor: string,
-    nuevoLogoFile: File | null
-  ) {
-    let logoUrl = escuderia.logo || null;
-
-    if (nuevoLogoFile) {
-      const uploaded = await subirLogo(nuevoLogoFile);
-      if (uploaded) logoUrl = uploaded;
-    }
-
-    const { error } = await supabase
-      .from("Escuderia")
-      .update({
-        nombre: nuevoNombre,
-        color: nuevoColor.replace("#", ""),
-        logo: logoUrl,
-      })
-      .eq("id_escuderia", escuderia.id_escuderia);
-
-    if (error) console.error(error);
-    else {
-      setEscuderiaEditando(null);
-      cargarEscuderias();
-    }
-  }
 
   // 🔹 Eliminar escudería
   async function handleEliminarEscuderia(id: number) {
@@ -175,9 +206,10 @@ export default function EscuderiasPage() {
       .eq("id_escuderia", id);
 
     if (error) {
-      console.error(error);
+      console.error(error.message);
       alert("Error al eliminar");
     } else {
+      addToast(`Escudería eliminada exitosamente`)
       cargarEscuderias();
     }
   }
@@ -240,7 +272,7 @@ async function confirmarAgregarPilotos() {
     console.error(error);
     alert("Error agregando pilotos");
   } else {
-    alert("Pilotos agregados correctamente");
+    addToast(`Pilotos agregados exitosamente`)
     setModalEscuderiaId(null);
     cargarEscuderias(); // recargar escuderías para ver los pilotos nuevos
   }
@@ -270,7 +302,10 @@ async function handleCambiarRolPiloto(
       .match({ id_piloto, id_escuderia });
 
     if (error) console.error(error);
-    else cargarEscuderias();
+    else{
+      addToast(`Pilotos desvinculado de la escudería exitosamente`)
+      cargarEscuderias();
+    }
   }
 
  return (
@@ -369,25 +404,18 @@ async function handleCambiarRolPiloto(
                       </div>
                     ) : (
                       <div
-                        className="w-16 h-16 rounded-lg border flex items-center justify-center text-sm font-bold text-gray-600"
+                        className="w-16 h-16 rounded-lg border flex items-center justify-center text-sm font-bold text-white"
                         style={{ backgroundColor: `#${e.color || "cccccc"}` }}
                       >
                         {e.nombre.charAt(0).toUpperCase()}
                       </div>
                     )}
 
-                    {escuderiaEditando?.id_escuderia === e.id_escuderia ? (
-                    <EditarEscuderia
-                      escuderia={e}
-                      onGuardar={handleGuardarEdicion}
-                      onCancelar={() => setEscuderiaEditando(null)}
-                    />
-                  ) : (
-                    <span className="font-medium text-lg">{e.nombre}</span>
-                  )}
+                      <span className="font-medium text-lg">{e.nombre}</span>
                   </div>
+
                   <div className="flex gap-2">
-                    {escuderiaEditando?.id_escuderia === e.id_escuderia ? null : (
+                    {editandoEscuderia?.id_escuderia === e.id_escuderia ? null : (
                       <>
                         <button
                           onClick={() => handleAgregarPiloto(e.id_escuderia)}
@@ -396,7 +424,7 @@ async function handleCambiarRolPiloto(
                           Agregar Piloto
                         </button>
                         <button
-                          onClick={() => setEscuderiaEditando(e)}
+                          onClick={() => setEditandoEscuderia(e)}
                           className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded"
                         >
                           Editar
@@ -477,6 +505,7 @@ async function handleCambiarRolPiloto(
           </div>
         </div>
         
+        {/*Modal de edición de pilotos de la escudería*/}
               {modalEscuderiaId && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
                   <div className="bg-white rounded-lg p-6 max-w-md w-full">
@@ -516,6 +545,71 @@ async function handleCambiarRolPiloto(
                   </div>
                 </div>
               )}
+
+              {/* MODAL DE EDICIÓN */}
+      {editandoEscuderia && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 w-[400px] space-y-4 shadow-lg">
+            <h3 className="text-lg font-semibold">Editar Escudería</h3>
+
+            <input
+              type="text"
+              value={editandoEscuderia.nombre}
+              onChange={(e) =>
+                setEditandoEscuderia({
+                  ...editandoEscuderia,
+                  nombre: e.target.value,
+                })
+              }
+              className="border p-2 rounded w-full"
+            />
+
+            <div className="flex items-center gap-3">
+              <label>Color:</label>
+              <input
+                type="color"
+                value={`#${editandoEscuderia.color}`}
+                onChange={(e) =>
+                  setEditandoEscuderia({
+                    ...editandoEscuderia,
+                    color: e.target.value,
+                  })
+                }
+                className="w-12 h-10 border rounded"
+              />
+            </div>
+
+            <div>
+              <label className="font-medium text-gray-700">Nuevo Logo (opcional)</label>
+              <input type="file" accept="image/*" onChange={handleLogo} />
+              {logoPreview && (
+                <img
+                  src={logoPreview}
+                  alt="Preview"
+                  className="mt-3 w-24 h-24 object-contain border rounded-lg"
+                />
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setEditandoEscuderia(null)}
+                className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEditarEscuderia}
+                disabled={uploading}
+                className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg"
+              >
+                {uploading ? "Guardando..." : "Guardar Cambios"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       </div>
     </div>
   );

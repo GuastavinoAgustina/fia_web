@@ -1,9 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
-import GranPrixDropdown from "@/components/gp-dropdown-list";
 import { createClient } from "@supabase/supabase-js";
-import Autocomplete from "@/components/autocomplete";
 import Link from "next/link";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import Image from "next/image";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!)
 
@@ -19,6 +24,7 @@ export default function Home() {
   type Piloto = {
     id_piloto: number;
     nombre: string;
+    foto? : string;
     puntos: number;
   }
 
@@ -38,7 +44,7 @@ export default function Home() {
         .from("Categoria")
         .select('nombre, id_categoria');
       if (error) 
-        console.error(error);
+        console.error(error.message);
       if (categorias) {
         setListaCategorias(categorias.map((it: any) => (
           {
@@ -62,7 +68,7 @@ export default function Home() {
       .select('id_carrera, nombre')
       .eq('id_categoria', categoriaSeleccionada?.id_categoria)
     if (error)
-      console.error(error)
+      console.error(error.message)
     if (data) {
       setListaCarreras(data.map((it: any) => (
         {
@@ -74,31 +80,39 @@ export default function Home() {
 
   };
 
-  const handleSelectCarrera = async (item: String) => {
+   const handleSelectCarrera = async (item: String) => {
     const carreraSeleccionada = listaCarreras.find((carrera) => carrera.nombre === item)
     setSelectedCarrera(carreraSeleccionada!)
+    if (carreraSeleccionada)
+      await fetchPilotosCarrera(carreraSeleccionada);
+  }
+
+  async function fetchPilotosCarrera(carrera : Carrera){
     const { data, error } = await supabase
       .from('Corre')
       .select(`
           id_piloto,
           puntaje,
           Piloto (
-            nombre
+            nombre,
+            foto
           )
         `)
-      .eq('id_carrera', carreraSeleccionada?.id_carrera);
+      .eq('id_carrera', carrera?.id_carrera);
     if (error)
-      console.error(error);
+      console.error(error.message);
     if (data) {
       const pilotos = data.map((it: any) => ({
         id_piloto: it.id_piloto,
         nombre: it.Piloto?.nombre,
+        foto: it.Piloto?.foto,
         puntos: it.puntaje
       })).sort((a, b) => b.puntos - a.puntos);
       setListaPilotos(pilotos);
       setListaPilotosOriginal(pilotos.map(p => ({ ...p })));
     }
-  };
+  }
+
 
   function handlePuntosChange(p: Piloto, nuevoValor: number) {
     setListaPilotos(listaPilotos.map(piloto =>
@@ -115,7 +129,7 @@ export default function Home() {
         .eq('id_piloto', piloto.id_piloto)
         .eq('id_carrera', selectedCarrera?.id_carrera);
       if (error) {
-        console.error('Error updating puntaje:', error);
+        console.error('Error updating puntaje:', error.message);
       } else {
         console.log('Updated data:', data);
       }
@@ -124,76 +138,129 @@ export default function Home() {
   }
 
   return (
-    <main className="p-10 min-h-screen flex flex-col items-center bg-white">
-      <div className="w-full max-w-xl p-6 rounded-2xl space-y-6">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
         {/* Encabezado */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Gestión de puntos</h1>
-          <Link href="/" className="text-blue-600 hover:underline">
-            Página principal
-          </Link>
-        </div>
-      </div>
-      <div className="flex flex-col items-center justify-center">
-        <h1 className="mb-1 mt-3"> Seleccione una categoría</h1>
-        <GranPrixDropdown
-          label="Seleccione una categoría"
-          listaGP={listaCategorias.map(it => it.nombre)}
-          setSelected={handleSelectCategoria}
-        />
-      </div>
-      {selectedCategoria && (
-        <div className="flex flex-col items-center justify-center mt-6">
-          <h1 className="mb-1">Seleccione una carrera</h1>
-          <GranPrixDropdown
-            label="Seleccione carrera"
-            listaGP={listaCarreras.map(it => it.nombre)}
-            setSelected={handleSelectCarrera}
-          />
-        </div>
-      )}
-
-      {listaPilotos.length > 0 && (
-        <div>
-          <ul className="mb-3 mt-4">
-            {listaPilotos?.map((p) => (
-              <li key={p.id_piloto} className="flex justify-between items-center bg-muted p-2 rounded mb-1 w-96">
-                <div className="flex justify-between items-center w-full">
-                  <div className="flex items-center gap-2">
-                    <span>
-                      {p.nombre}
-                    </span>
-                  </div>
-                  <div className="flex items-center h-full">
-                    <input
-                      type="number"
-                      min="0"
-                      value={p.puntos}
-                      onChange={e => handlePuntosChange(p, Number(e.target.value))}
-                      className="border px-2 py-1 rounded mt-1 mb-1 w-16 text-center"
-                    />
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          <div className="flex justify-between w-96 mt-2">
-            <button
-              onClick={() => cargarPuntosEnDB()}
-              className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
-            >
-              Guardar Puntaje
-            </button>
-            <button
-              onClick={() => setListaPilotos(listaPilotosOriginal)}
-              className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
-            >
-              Resetear
-            </button>
+        <div className="bg-white border-b border-gray-200 pb-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Gestión de Puntaje</h1>
+              <p className="text-gray-600 mt-1">Administra el puntaje de los pilotos en una carrera</p>
+            </div>
+            <Link 
+                href="/admin" 
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+                >
+                ← Página principal
+            </Link>
           </div>
         </div>
-      )}
-    </main>
-  );
+        
+        {/* Selección de categoría */}
+        <div className="p-4 bg-white border border-gray-200 space-y-3">
+          <label className="block text-lg font-semibold text-gray-700 mb-2">Categoría</label>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg flex justify-between items-center">
+              {selectedCategoria ? selectedCategoria.nombre : "Seleccione una categoría"}
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent className="w-full">
+              {listaCategorias.map((cat) => (
+                <DropdownMenuItem
+                  key={cat.id_categoria}
+                  onSelect={() => handleSelectCategoria(cat.nombre)}
+                  className="cursor-pointer"
+                >
+                  {cat.nombre}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Selección de carrera */}
+        <div className="p-4 bg-white border border-gray-200 space-y-3">
+          <label className="block text-lg font-semibold text-gray-700 mb-2">Carrera</label>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={`w-full ${
+                listaCarreras.length === 0
+                  ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-800"
+              } px-3 py-2 rounded-lg flex justify-between items-center`}
+              disabled={listaCarreras.length === 0}
+            >
+              {selectedCarrera ? selectedCarrera.nombre : "Seleccione una carrera"}
+            </DropdownMenuTrigger>
+
+            {listaCarreras.length > 0 && (
+              <DropdownMenuContent className="w-full">
+                {listaCarreras.map((car) => (
+                  <DropdownMenuItem
+                    key={car.id_carrera}
+                    onSelect={() => handleSelectCarrera(car.nombre)}
+                    className="cursor-pointer"
+                  >
+                    {car.nombre}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            )}
+          </DropdownMenu>
+        </div>
+
+        {/* Lista de pilotos */} 
+        {listaPilotos.length > 0 && (
+          <div className="p-4 bg-white border border-gray-200 space-y-3">
+            <label className="block text-lg font-semibold text-gray-700 mb-2">Puntajes</label>
+            {listaPilotos.map((p) => (
+                      <div
+                        key={p.id_piloto}
+                        className="flex justify-between items-center border-b border-gray-100 pb-2"
+                      >
+                        <div className="flex items-center gap-3">
+                          {p.foto && (
+                            <Image
+                              src={p.foto}
+                              alt={p.nombre}
+                              width={45}
+                              height={45}
+                              className="rounded-full object-cover border"
+                            />
+                          )}
+                          <span className="text-gray-800 font-medium">{p.nombre}</span>
+                        </div>
+
+                        <input
+                          type="number"
+                          min="0"
+                          value={p.puntos}
+                          onChange={(e) =>
+                            handlePuntosChange(p, Number(e.target.value))
+                          }
+                          className="border border-gray-300 rounded px-2 py-1 w-20 text-center focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                        />
+              </div>
+            ))}
+
+            {/* Botones */}
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={cargarPuntosEnDB}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
+              >
+                Guardar Puntaje
+              </button>
+              <button
+                onClick={() => setListaPilotos(listaPilotosOriginal)}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+              >
+                Resetear
+              </button>
+            </div>
+          </div>
+        )}
+      </div> 
+    </div>
+  )
 }
