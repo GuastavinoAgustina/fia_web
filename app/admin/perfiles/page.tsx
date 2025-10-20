@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import Image from "next/image";
 import Link from "next/link";
 import {Piloto} from "@/app/admin/pilotos/page"
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/toast-provider"
 import { subirLogoEscuderia } from "@/lib/supabase/storage";
+import { createClient } from "@/lib/supabase/client"
 
 type PilotoEnEscuderia = {
   id_piloto: number;
@@ -29,10 +29,7 @@ type Escuderia = {
   PilotoTieneEscuderia?: PilotoEnEscuderia[];
 };
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!
-);
+const supabase = createClient()
 
 export default function EscuderiasPage() {
   const [escuderias, setEscuderias] = useState<Escuderia[]>([]);
