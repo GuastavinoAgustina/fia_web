@@ -4,24 +4,28 @@ import Image from 'next/image';
 import { FlagIcon, FlagIconCode } from "react-flag-kit"
 import { getCountryCode } from '@/lib/country';
 import { createClient } from "@supabase/supabase-js";
-import GranPrixDropdown from "@/components/gp-dropdown-list";
-import EscuderiaCar from "@/components/escuderia-card";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!)
 
-  type Piloto = {
-    id_piloto: number;
-    id_escuderia: number;
-    nombre: string;
-    pais: string;
-    puntos: number;
-    nombre_escuderia: string | null;
-    color_escuderia: string | null;
-    logo_escuderia: string | null;
-  }
+type Piloto = {
+  id_piloto: number;
+  id_escuderia: number;
+  nombre: string;
+  pais: string;
+  puntos: number;
+  nombre_escuderia: string | null;
+  color_escuderia: string | null;
+  logo_escuderia: string | null;
+}
 
 
-export default function Puntos(){
+export default function Puntos() {
   const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
   const [selectedCarrera, setSelectedCarrera] = useState<Carrera | null>(null)
   const [listaCategorias, setListaCategorias] = useState<Categoria[]>([]);
@@ -41,33 +45,33 @@ export default function Puntos(){
   }
 
   type Categoria = {
-      id_categoria: number;
-      nombre: string
-    }
-  
+    id_categoria: number;
+    nombre: string
+  }
+
   type Carrera = {
     id_carrera: number;
     nombre: string;
   }
 
-    useEffect(() => {
-      async function fetchCategorias() {
-        const { data: categorias, error } = await supabase
-          .from("Categoria")
-          .select('nombre, id_categoria');
-        if (error) 
-          console.error(error);
-        if (categorias) {
-          setListaCategorias(categorias.map((it: any) => (
-            {
-              id_categoria: it.id_categoria,
-              nombre: it.nombre,
-            }
-          )));
-        }
+  useEffect(() => {
+    async function fetchCategorias() {
+      const { data: categorias, error } = await supabase
+        .from("Categoria")
+        .select('nombre, id_categoria');
+      if (error)
+        console.error(error);
+      if (categorias) {
+        setListaCategorias(categorias.map((it: any) => (
+          {
+            id_categoria: it.id_categoria,
+            nombre: it.nombre,
+          }
+        )));
       }
-      fetchCategorias();
-    }, []);
+    }
+    fetchCategorias();
+  }, []);
 
   const handleSelectCategoria = async (item: string) => {
     const categoriaSeleccionada = listaCategorias.find((categoria) => categoria.nombre === item)
@@ -89,7 +93,7 @@ export default function Puntos(){
     }
   };
 
-    const handleSelectCarrera = async (item: String) => {
+  const handleSelectCarrera = async (item: String) => {
     const carreraSeleccionada = listaCarreras.find((carrera) => carrera.nombre === item)
     setSelectedCarrera(carreraSeleccionada!)
     const { data, error } = await supabase
@@ -128,53 +132,79 @@ export default function Puntos(){
 
   };
 
-    return(
-        <main>
-            <div className="flex flex-col items-center justify-center">
-                <h1 className="mb-1 mt-3"> Seleccione una categoría</h1>
-                <GranPrixDropdown
-                label="Seleccione una categoría"
-                listaGP={listaCategorias.map(it => it.nombre)}
-                setSelected={handleSelectCategoria}
-                />
-            </div>
+  return (
+    <main>
+      <div className="flex flex-col items-center justify-center">
+        <h1 className="mt-4 text-l md:text-l font-bold text-gray-800 uppercase tracking-wide"> Categoría:</h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="mt-1 border bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg flex justify-between items-center">
+            {selectedCategoria ? selectedCategoria.nombre : "Seleccione una categoría"}
+          </DropdownMenuTrigger>
 
-            {selectedCategoria && (
-                    <div className="flex flex-col items-center justify-center mt-6">
-                    <h1 className="mb-1">Seleccione una carrera</h1>
-                    <GranPrixDropdown
-                        label="Seleccione carrera"
-                        listaGP={listaCarreras.map(it => it.nombre)}
-                        setSelected={handleSelectCarrera}
-                    />
-                    </div>
-                )}
+          <DropdownMenuContent className="w-full">
+            {listaCategorias.map((cat) => (
+              <DropdownMenuItem
+                key={cat.id_categoria}
+                onSelect={() => handleSelectCategoria(cat.nombre)}
+                className="cursor-pointer"
+              >
+                {cat.nombre}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
-            {
+      {selectedCategoria && (
+        <div className="flex flex-col items-center justify-center mt-6">
+          <h1 className="text-l md:text-l font-bold text-gray-800 uppercase tracking-wide">Carrera:</h1>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="mt-4 border bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg flex justify-between items-center">
+              {selectedCarrera ? selectedCarrera.nombre : "Seleccione una carrera"}
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent className="w-full">
+              {listaCarreras.map((carr) => (
+                <DropdownMenuItem
+                  key={carr.id_carrera}
+                  onSelect={() => handleSelectCarrera(carr.nombre)}
+                  className="cursor-pointer"
+                >
+                  {carr.nombre}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+
+        </div>
+      )}
+
+      {
         selectedCarrera && (
           <div className="p-10 min-h-screen flex flex-col items-center bg-white">
             <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3">
               <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-3">
-                                 <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
-                                 Puntuación de pilotos
-                             </p>
+                <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
+                Puntuación de pilotos
+              </p>
               {listaPilotos.map(piloto => (
                 <PilotoCard key={piloto.id_piloto} piloto={piloto} colorFondo={piloto.color_escuderia!} />
               ))}
             </div>
             <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3">
               <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-3">
-                                 <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
-                                 Puntuación de constructores
-                             </p>
+                <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
+                Puntuación de constructores
+              </p>
               {Array.from(teamMap.values()).sort((a, b) => b.puntos - a.puntos).map((escuderia) => (
                 <EscuderiaCard key={escuderia.id_escuderia} escuderia={escuderia} />
               ))}
             </div>
           </div>
         )}
-      </main>
-    )
+    </main>
+  )
 }
 
 
@@ -184,54 +214,54 @@ type PilotoCardProps = {
   colorFondo?: string
 };
 
-function PilotoCard({ piloto, colorFondo}: PilotoCardProps) {
- 
- 
+function PilotoCard({ piloto, colorFondo }: PilotoCardProps) {
+
+
   const pais = piloto.pais || 'N/A';
   const codigoPais = getCountryCode(pais) || "";
-  const bgColor = colorFondo? '#' + colorFondo : "#ec0000";
+  const bgColor = colorFondo ? '#' + colorFondo : "#ec0000";
 
- return (
-    <div 
+  return (
+    <div
       className="relative w-full overflow-hidden rounded-lg shadow-lg flex items-center justify-between"
       style={{
         background: `linear-gradient(to right, ${bgColor}ff, ${bgColor}e5, ${bgColor}b3, ${bgColor}80)`,
         color: "#000000",
       }}
     >
-      
-        {/* Lado Izquierdo: Información del Piloto */}
-        <div className="flex items-center space-x-3 pl-4 flex-1">
-            <FlagIcon code={codigoPais as FlagIconCode} size={32} className="rounded border" />
-            <p className="mt-1 mb-1 f1-regular text-xl font-semibold">{piloto.nombre}</p>
-        </div>
-        <div className="flex items-center space-x-3 pl-4 flex-1">
-            {piloto.logo_escuderia && (
-            <div className="relative h-8 w-8">
-                <Image
-                  src={piloto.logo_escuderia}
-                  alt={`Logo de ${piloto.nombre_escuderia}`}
-                  fill
-                  className="object-contain max-h-10 max-w-10"
-                />
-            </div>)}
-        </div>
-        <div className="flex items-center pr-4">
-            <p className="font-bold px-2 py-1 rounded mt-1 mb-1 w-16 text-center">
-                {piloto.puntos}
-            </p>
-        </div>
-    
+
+      {/* Lado Izquierdo: Información del Piloto */}
+      <div className="flex items-center space-x-3 pl-4 flex-1">
+        <FlagIcon code={codigoPais as FlagIconCode} size={32} className="rounded border" />
+        <p className="mt-1 mb-1 f1-regular text-xl font-semibold">{piloto.nombre}</p>
       </div>
+      <div className="flex items-center space-x-3 pl-4 flex-1">
+        {piloto.logo_escuderia && (
+          <div className="relative h-8 w-8">
+            <Image
+              src={piloto.logo_escuderia}
+              alt={`Logo de ${piloto.nombre_escuderia}`}
+              fill
+              className="object-contain max-h-10 max-w-10"
+            />
+          </div>)}
+      </div>
+      <div className="flex items-center pr-4">
+        <p className="font-bold px-2 py-1 rounded mt-1 mb-1 w-16 text-center">
+          {piloto.puntos}
+        </p>
+      </div>
+
+    </div>
   );
 }
 
 type Escuderia = {
-    id_escuderia: number;
-    nombre: string;
-    color: string;
-    logo: string;
-    puntos: number;
+  id_escuderia: number;
+  nombre: string;
+  color: string;
+  logo: string;
+  puntos: number;
 }
 
 type EscuderiaCardProps = {
@@ -239,9 +269,9 @@ type EscuderiaCardProps = {
 };
 
 function EscuderiaCard({ escuderia }:
-   EscuderiaCardProps) {
+  EscuderiaCardProps) {
 
-  const nombre = escuderia.nombre || "Sin nombre"; 
+  const nombre = escuderia.nombre || "Sin nombre";
   const bgColor = escuderia.color ? '#' + escuderia.color : '#ec0000ff';
   let logoURL = "/icon.png"; // fallback por defecto
 
@@ -250,40 +280,40 @@ function EscuderiaCard({ escuderia }:
       // Si la URL es válida, la usamos
       new URL(escuderia.logo);
       logoURL = escuderia.logo;
-    } catch {}
+    } catch { }
   }
 
- return (
-    <div 
+  return (
+    <div
       className="relative w-full overflow-hidden rounded-lg shadow-lg flex items-center justify-between"
       style={{
         background: `linear-gradient(to right, ${bgColor}ff, ${bgColor}e5, ${bgColor}b3, ${bgColor}80)`,
         color: "#000000",
       }}
     >
-      
 
-        {/* Nombre a la izquierda */}
-         <div className="flex items-center space-x-3 pl-4 flex-1">
-            {logoURL && (
-            <div className="relative h-8 w-8">
-                <Image
-                  src={logoURL}
-                  alt={`Logo de ${nombre}`}
-                  fill
-                  className="object-contain max-h-10 max-w-10"
-                />
-            </div>
+
+      {/* Nombre a la izquierda */}
+      <div className="flex items-center space-x-3 pl-4 flex-1">
+        {logoURL && (
+          <div className="relative h-8 w-8">
+            <Image
+              src={logoURL}
+              alt={`Logo de ${nombre}`}
+              fill
+              className="object-contain max-h-10 max-w-10"
+            />
+          </div>
         )}
-            <span className="mt-1 mb-1 f1-regular text-xl font-semibold">{nombre}</span>
-        </div>
-        <div className="flex items-center pr-4">
-            <p className="font-bold px-2 py-1 rounded mt-1 mb-1 w-16 text-center">
-                {escuderia.puntos}
-            </p>
-        </div>
+        <span className="mt-1 mb-1 f1-regular text-xl font-semibold">{nombre}</span>
       </div>
-      
+      <div className="flex items-center pr-4">
+        <p className="font-bold px-2 py-1 rounded mt-1 mb-1 w-16 text-center">
+          {escuderia.puntos}
+        </p>
+      </div>
+    </div>
+
   );
 }
 
@@ -291,13 +321,13 @@ function accumulateEscuderiaPoints(pilotos: Piloto[]): Map<number, Escuderia> {
   const m = new Map<number, Escuderia>();
   for (const p of pilotos) {
     const escuderia = {
-        id_escuderia: p.id_escuderia,
-        nombre: p.nombre_escuderia || "Sin nombre",
-        color: p.color_escuderia || "ec0000",
-        logo: p.logo_escuderia || "/icon.png"
-    };  
+      id_escuderia: p.id_escuderia,
+      nombre: p.nombre_escuderia || "Sin nombre",
+      color: p.color_escuderia || "ec0000",
+      logo: p.logo_escuderia || "/icon.png"
+    };
     const puntos = Number(p.puntos ?? 0);
-    if(m.has(escuderia.id_escuderia)) {
+    if (m.has(escuderia.id_escuderia)) {
       m.get(escuderia.id_escuderia)!.puntos += puntos;
     } else {
       m.set(escuderia.id_escuderia, { ...escuderia, puntos });

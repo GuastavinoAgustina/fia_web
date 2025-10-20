@@ -4,8 +4,12 @@ import Image from 'next/image';
 import { FlagIcon, FlagIconCode } from "react-flag-kit"
 import { getCountryCode } from '@/lib/country';
 import { createClient } from "@supabase/supabase-js";
-import GranPrixDropdown from "@/components/gp-dropdown-list";
-import EscuderiaCar from "@/components/escuderia-card";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!)
 
@@ -235,31 +239,44 @@ export default function Campeonato() {
     return (
         <main className="bg-white">
             <div className="flex flex-col items-center justify-center bg-white">
-                <h1 className="mb-1 mt-3"> Seleccione una categoría</h1>
-                <GranPrixDropdown
-                    label="Seleccione una categoría"
-                    listaGP={listaCategorias.map(it => it.nombre)}
-                    setSelected={handleSelectCategoria}
-                />
+                <h1 className="mt-4 text-l md:text-l font-bold text-gray-800 uppercase tracking-wide"> Categoría:</h1>
+                <DropdownMenu>
+                    <DropdownMenuTrigger className="mt-1 border bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg flex justify-between items-center">
+                        {selectedCategoria ? selectedCategoria.nombre : "Seleccione una categoría"}
+                    </DropdownMenuTrigger>
+
+                    <DropdownMenuContent className="w-full">
+                        {listaCategorias.map((cat) => (
+                            <DropdownMenuItem
+                                key={cat.id_categoria}
+                                onSelect={() => handleSelectCategoria(cat.nombre)}
+                                className="cursor-pointer"
+                            >
+                                {cat.nombre}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
             </div>
-    
+
             {
                 selectedCategoria && (
                     <div className="p-10 min-h-screen flex flex-col items-center">
                         <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3">
                             <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-3">
-                                 <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
-                                 Campeonato de pilotos
-                             </p>
+                                <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
+                                Campeonato de pilotos
+                            </p>
                             {Array.from(pilotMap.values()).sort((a, b) => b.puntos - a.puntos).map(piloto => (
                                 <PilotoCard key={piloto.id_piloto} piloto={piloto} colorFondo={piloto.color_escuderia!} />
                             ))}
                         </div>
                         <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3">
                             <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-3">
-                                 <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
-                                 Campeonato de constructores
-                             </p>
+                                <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
+                                Campeonato de constructores
+                            </p>
                             {Array.from(teamMap.values()).sort((a, b) => b.puntos - a.puntos).map((escuderia) => (
                                 <EscuderiaCard key={escuderia.id_escuderia} escuderia={escuderia} />
                             ))}
