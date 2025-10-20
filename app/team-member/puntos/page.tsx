@@ -154,11 +154,19 @@ export default function Puntos(){
         selectedCarrera && (
           <div className="p-10 min-h-screen flex flex-col items-center bg-white">
             <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3">
+              <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-3">
+                                 <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
+                                 Puntuación de pilotos
+                             </p>
               {listaPilotos.map(piloto => (
                 <PilotoCard key={piloto.id_piloto} piloto={piloto} colorFondo={piloto.color_escuderia!} />
               ))}
             </div>
             <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3">
+              <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-3">
+                                 <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
+                                 Puntuación de constructores
+                             </p>
               {Array.from(teamMap.values()).sort((a, b) => b.puntos - a.puntos).map((escuderia) => (
                 <EscuderiaCard key={escuderia.id_escuderia} escuderia={escuderia} />
               ))}

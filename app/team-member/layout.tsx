@@ -3,7 +3,8 @@ import MainHeader, {NavItem} from '@/components/main-header-user-view';
 
 const teamMemberNavItems: NavItem[] = [
   { name: 'CALENDARIO', href: '/team-member/calendario' },
-  { name: 'PUNTAJE', href: '/team-member/puntaje' },
+  { name: 'PUNTAJES', href: '/team-member/puntos' },
+  { name: 'CAMPEONATO' , href: '/team-member/campeonato'},
   { name: 'SANCIONES', href: '/team-member/sanciones' },
 ];
 
@@ -11,7 +12,7 @@ export default function TeamMemberLayout({ children }: { children: React.ReactNo
   return (
     <div>
       <MainHeader navItems={teamMemberNavItems} />
-        <main className="bg-black">
+        <main className="bg-white">
           {children}
         </main>
     </div>
