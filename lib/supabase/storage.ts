@@ -71,7 +71,6 @@ export async function subirLogoEscuderia(file: File, escuderiaId: string): Promi
     const extension = file.name.split('.').pop()
     const fileName = `escuderia_${escuderiaId}_${timestamp}.${extension}`
     
-    // Subir archivo al bucket 'fotoCorredor'
     const { data, error } = await supabase.storage
       .from('logoEscuderia')
       .upload(fileName, file, {
@@ -84,7 +83,6 @@ export async function subirLogoEscuderia(file: File, escuderiaId: string): Promi
       return null
     }
     
-    // Obtener URL pública de la imagen
     const { data: publicUrlData } = supabase.storage
       .from('logoEscuderia')
       .getPublicUrl(fileName)

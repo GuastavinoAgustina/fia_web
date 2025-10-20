@@ -27,15 +27,29 @@ function EditarPiloto({
     onCancelar 
 }: {
     piloto: Piloto;
-    onGuardar: (piloto: Piloto, nombre: string, fecha: string, pais: string) => void;
+    onGuardar: (piloto: Piloto, nombre: string, fecha: string, pais: string, nuevaFoto?: File | null) => void;
     onCancelar: () => void;
 }) {
     const [nombre, setNombre] = useState(piloto.nombre);
     const [fecha, setFecha] = useState(piloto.fecha_nacimiento);
     const [pais, setPais] = useState(piloto.pais || '');
+    const [nuevaFoto, setNuevaFoto] = useState<File | null>(null);
+    const [fotoPreview, setFotoPreview] = useState<string>("");
+
+    const manejarCambioFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setNuevaFoto(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFotoPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleGuardar = () => {
-        onGuardar(piloto, nombre, fecha, pais);
+        onGuardar(piloto, nombre, fecha, pais, nuevaFoto);
     };
 
     return (
@@ -65,6 +79,36 @@ function EditarPiloto({
                     placeholder="País de origen"
                     className="text-sm bg-white border border-gray-300 px-2 py-1 rounded flex-1"
                 />
+            </div>
+
+            {/* Sección de edición de foto */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nueva Foto (opcional)
+                </label>
+                <div className="flex gap-4 items-center">
+                    {/* Vista previa solo de la nueva imagen */}
+                    {fotoPreview && (
+                        <div className="flex-shrink-0">
+                            <img 
+                                src={fotoPreview} 
+                                alt="Preview nueva foto" 
+                                className="w-16 h-16 object-cover rounded-full border-2 border-green-500"
+                            />
+                        </div>
+                    )}
+                    
+                    {/* Input de archivo */}
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={manejarCambioFoto}
+                        className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-green-50 file:text-green-600 hover:file:bg-green-100"
+                    />
+                </div>
+                {fotoPreview && (
+                    <p className="text-xs text-green-600 mt-1">✓ Nueva foto seleccionada</p>
+                )}
             </div>
 
             <div className="flex gap-2 justify-end pt-2">
@@ -279,12 +323,13 @@ export default function PilotosPage() {
     }
 
     // 🔹 Editar piloto
-    async function updatePiloto(p: Piloto, newNombre: string, newFecha: string, newPais?: string) {
+    async function updatePiloto(p: Piloto, newNombre: string, newFecha: string, newPais?: string, newFoto?: string) {
         const cambios: any = {}
         
         if (newNombre !== p.nombre) cambios.nombre = newNombre
         if (newFecha !== p.fecha_nacimiento) cambios.fecha_nacimiento = newFecha  
         if (newPais && newPais !== p.pais) cambios.pais = newPais
+        if (newFoto && newFoto !== p.foto) cambios.foto = newFoto
 
         // Si no hay cambios, no hacer nada
         if (Object.keys(cambios).length === 0) return
@@ -302,15 +347,20 @@ export default function PilotosPage() {
                         : x
                 )
             )
-            if (newNombre !== p.nombre) {
-                addToast(
-                    `Cambio de nombre de piloto ${p.nombre} (${p.id_piloto}) a ${newNombre}`
-                )
+            
+            // Mostrar mensaje apropiado basado en lo que cambió
+            if (newFoto && newFoto !== p.foto) {
+                addToast(`Foto actualizada para el piloto ${p.nombre}`)
+            } else if (newNombre !== p.nombre) {
+                addToast(`Cambio de nombre de piloto ${p.nombre} (${p.id_piloto}) a ${newNombre}`)
             } else if (newFecha !== p.fecha_nacimiento) {
-                addToast(
-                    `Cambio de fecha de nacimiento para el piloto ${p.nombre} (${p.id_piloto}), ${p.fecha_nacimiento} a ${newFecha}`
-                )
+                addToast(`Cambio de fecha de nacimiento para el piloto ${p.nombre} (${p.id_piloto}), ${p.fecha_nacimiento} a ${newFecha}`)
+            } else if (newPais && newPais !== p.pais) {
+                addToast(`País actualizado para el piloto ${p.nombre}`)
             }
+        } else {
+            addToast("Error al actualizar el piloto")
+            console.error('Error actualizando piloto:', error)
         }
     }
 
@@ -351,8 +401,25 @@ export default function PilotosPage() {
         setEditandoPiloto(null)
     }
 
-    const guardarEdicion = async (piloto: Piloto, nuevoNombre: string, nuevaFecha: string, nuevoPais: string) => {
-        await updatePiloto(piloto, nuevoNombre, nuevaFecha, nuevoPais)
+    const guardarEdicion = async (piloto: Piloto, nuevoNombre: string, nuevaFecha: string, nuevoPais: string, nuevaFoto?: File | null) => {
+        // Si hay una nueva foto, subirla primero
+        let fotoUrl = piloto.foto; // Mantener la foto actual por defecto
+        
+        if (nuevaFoto) {
+            try {
+                const nuevaFotoUrl = await subirFotoPiloto(nuevaFoto, piloto.id_piloto.toString());
+                if (nuevaFotoUrl) {
+                    fotoUrl = nuevaFotoUrl;
+                }
+            } catch (error) {
+                console.error('Error subiendo nueva foto:', error);
+                addToast("Error al subir la nueva foto, pero se guardaron los otros cambios");
+                // Continúa con la actualización sin cambiar la foto
+            }
+        }
+        
+        // Actualizar piloto incluyendo la nueva foto si existe
+        await updatePiloto(piloto, nuevoNombre, nuevaFecha, nuevoPais, fotoUrl)
         setEditandoPiloto(null)
     }
 
