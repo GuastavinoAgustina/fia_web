@@ -6,7 +6,6 @@ import MainHeader, {NavItem} from '../../components/main-header-user-view';
   { name: 'PERFILES', href: '/admin/perfiles' },
   { name: 'PILOTOS', href: '/admin/pilotos' },
   { name: 'PUNTOS', href: '/admin/puntos' },
-  { name: 'SANCIONES', href: '/admin/sanciones' },
 ];
 
 export default function AdminLayout({ children }: Readonly<{ children: React.ReactNode; }>) {

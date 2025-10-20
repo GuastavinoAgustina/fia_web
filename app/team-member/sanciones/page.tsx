@@ -162,7 +162,7 @@ export default function SancionesPorEscuderia() {
                   <p className="text-gray-600 mt-1">Visualiza las sanciones registradas</p>
                 </div>
                   <Link 
-                    href="/admin" 
+                    href="/team-member" 
                     className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
                   >
                     ← Página principal
