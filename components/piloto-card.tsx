@@ -36,7 +36,7 @@ export default function PilotoCard({ piloto, escuderiaContexto , colorFondo}: Pi
     >
       
         {/* Lado Izquierdo: Información del Piloto */}
-        <div className="p-8 space-y-3 flex flex-col justify-center flex-grow z-10">
+        <div className="p-8 space-y-3 flex flex-col justify-center flex-grow z-10 text-white-600">
           <p className="f1-regular text-xl font-semibold">{piloto.nombre}</p>
           <p className="text-xl font-semibold">Edad: {edad} años</p> 
               <div className="flex items-center space-x-2">
@@ -71,7 +71,7 @@ export default function PilotoCard({ piloto, escuderiaContexto , colorFondo}: Pi
   );
 }
 
-function colorClaro(color? : string) : boolean{
+export function colorClaro(color? : string) : boolean{
   if (!color) return false;
   const r = parseInt(color.substring(0, 2), 16);
   const g = parseInt(color.substring(2, 4), 16);
@@ -81,5 +81,5 @@ function colorClaro(color? : string) : boolean{
   const luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
   // Si es muy claro, usar texto negro; si es oscuro, texto blanco
-  return luminancia > 0.6;
+  return luminancia > 0.5;
 }

@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
+import {colorClaro} from "@/components/piloto-card"
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!)
 
@@ -234,13 +235,14 @@ function PilotoCard({ piloto, colorFondo }: PilotoCardProps) {
   const pais = piloto.pais || 'N/A';
   const codigoPais = getCountryCode(pais) || "";
   const bgColor = colorFondo ? '#' + colorFondo : "#ec0000";
+  const textColor = colorClaro(colorFondo) ? '#000000ff' : '#ffffffff';
 
   return (
     <div
       className="relative w-full overflow-hidden rounded-lg shadow-lg flex items-center justify-between"
       style={{
         background: `linear-gradient(to right, ${bgColor}ff, ${bgColor}e5, ${bgColor}b3, ${bgColor}80)`,
-        color: "#000000",
+        color: textColor,
       }}
     >
 
@@ -261,7 +263,7 @@ function PilotoCard({ piloto, colorFondo }: PilotoCardProps) {
           </div>)}
       </div>
       <div className="flex items-center pr-4">
-        <p className="font-bold px-2 py-1 rounded mt-1 mb-1 w-16 text-center">
+        <p className="font-bold px-2 py-1 rounded mt-1 mb-1 w-16 text-center text-black">
           {piloto.puntos}
         </p>
       </div>
@@ -288,6 +290,7 @@ function EscuderiaCard({ escuderia }:
   const nombre = escuderia.nombre || "Sin nombre";
   const bgColor = escuderia.color ? '#' + escuderia.color : '#ec0000ff';
   let logoURL = "/icon.png"; // fallback por defecto
+  const textColor = colorClaro(escuderia.color) ? '#000000ff' : '#ffffffff';
 
   if (typeof escuderia.logo === "string" && escuderia.logo.trim() !== "") {
     try {
@@ -302,7 +305,7 @@ function EscuderiaCard({ escuderia }:
       className="relative w-full overflow-hidden rounded-lg shadow-lg flex items-center justify-between"
       style={{
         background: `linear-gradient(to right, ${bgColor}ff, ${bgColor}e5, ${bgColor}b3, ${bgColor}80)`,
-        color: "#000000",
+        color: textColor,
       }}
     >
 
@@ -322,7 +325,7 @@ function EscuderiaCard({ escuderia }:
         <span className="mt-1 mb-1 f1-regular text-xl font-semibold">{nombre}</span>
       </div>
       <div className="flex items-center pr-4">
-        <p className="font-bold px-2 py-1 rounded mt-1 mb-1 w-16 text-center">
+        <p className="font-bold px-2 py-1 rounded mt-1 mb-1 w-16 text-center text-black">
           {escuderia.puntos}
         </p>
       </div>
