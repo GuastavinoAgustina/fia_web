@@ -197,6 +197,130 @@ export default function SancionesCRUD() {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  // 🟢 Crear Sanción
+  const handleAddSancion = async () => {
+    if (!formData.fechaSancion || !formData.motivo || !formData.id_piloto || !formData.tipo) return;
+
+    // 1. Insertar en Sancion
+    const { data, error } = await supabase
+      .from("Sancion")
+      .insert({
+        fecha: formData.fechaSancion,
+        hora: formData.horaSancion || null, // Nuevo
+        motivo: formData.motivo,
+        descripcion: formData.descripcion,
+        tipo: formData.tipo, // Nuevo
+      })
+      .select();
+
+    if (error) {
+      console.error("Error agregando sanción:", error.message);
+      return;
+    }
+
+    const nuevaSancionId = data[0].id_sancion;
+
+    // 2. Insertar en SancionAplicaPiloto
+    await supabase
+      .from("SancionAplicaPiloto")
+      .insert({ id_sancion: nuevaSancionId, id_piloto: parseInt(formData.id_piloto) });
+
+    setIsAdding(false);
+    setFormData({ fechaSancion: "", horaSancion: "", motivo: "", descripcion: "", tipo: "", id_piloto: "" });
+    fetchEscuderiasConSanciones();
+  };
+
+  // 🟡 Editar sanción
+  const handleEditSancion = async (sancion: Sancion) => {
+    setEditSancionId(sancion.id_sancion);
+
+    // Obtener el id_piloto de la sanción (solo tiene un piloto en el diseño actual)
+    const { data: pilotoSancionData } = await supabase
+        .from("SancionAplicaPiloto")
+        .select("id_piloto")
+        .eq("id_sancion", sancion.id_sancion)
+        .limit(1)
+        .single();
+    
+    const idPilotoActual = pilotoSancionData?.id_piloto.toString() || "";
+
+    setFormData({
+      fechaSancion: sancion.fechaSancion,
+      horaSancion: sancion.horaSancion === "-" ? "" : sancion.horaSancion,
+      motivo: sancion.motivo,
+      descripcion: sancion.descripcion,
+      tipo: sancion.tipo === "-" ? "" : sancion.tipo,
+      id_piloto: idPilotoActual,
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    // 1. Actualizar tabla Sancion
+    const { error: sancionError } = await supabase
+      .from("Sancion")
+      .update({
+        fecha: formData.fechaSancion,
+        hora: formData.horaSancion || null, // Nuevo
+        motivo: formData.motivo,
+        descripcion: formData.descripcion,
+        tipo: formData.tipo, // Nuevo
+      })
+      .eq("id_sancion", editSancionId);
+
+    if (sancionError) {
+      console.error("Error actualizando sanción:", sancionError.message);
+      return;
+    }
+    
+    // 2. Actualizar/Insertar/Eliminar Piloto en SancionAplicaPiloto
+    if (formData.id_piloto) {
+        // Eliminar registros anteriores (solo debería haber uno)
+        await supabase
+            .from("SancionAplicaPiloto")
+            .delete()
+            .eq("id_sancion", editSancionId);
+
+        // Insertar el nuevo piloto
+        await supabase
+            .from("SancionAplicaPiloto")
+            .insert({ id_sancion: editSancionId, id_piloto: parseInt(formData.id_piloto) });
+
+    } else {
+        // Si no hay piloto seleccionado, eliminamos el registro de SancionAplicaPiloto
+        await supabase
+            .from("SancionAplicaPiloto")
+            .delete()
+            .eq("id_sancion", editSancionId);
+    }
+
+    setEditSancionId(null);
+    setFormData({ fechaSancion: "", horaSancion: "", motivo: "", descripcion: "", tipo: "", id_piloto: "" });
+    fetchEscuderiasConSanciones();
+  };
+  
+  // 🔴 Eliminar Piloto de la Sanción
+  const handleRemovePilotoFromSancion = async () => {
+    if (!editSancionId) return;
+
+    await supabase
+        .from("SancionAplicaPiloto")
+        .delete()
+        .eq("id_sancion", editSancionId);
+
+    setFormData(prev => ({ ...prev, id_piloto: "" }));
+    fetchEscuderiasConSanciones();
+  };
+
+
+  // 🔴 Eliminar sanción
+  const handleDeleteSancion = async (id: number) => {
+    // 1. Eliminar relaciones
+    await supabase.from("SancionAplicaPiloto").delete().eq("id_sancion", id);
+    // 2. Eliminar sanción
+    await supabase.from("Sancion").delete().eq("id_sancion", id);
+    fetchEscuderiasConSanciones();
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -212,6 +336,86 @@ export default function SancionesCRUD() {
           >
             ← Página principal
           </Link>
+        </div>
+
+        {/* Formulario de Alta */}
+        <div className="bg-gray-50 p-4 rounded-lg shadow border">
+          <button
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold"
+            onClick={() => {
+                setIsAdding(!isAdding);
+                setFormData({ fechaSancion: "", horaSancion: "", motivo: "", descripcion: "", tipo: "", id_piloto: "" });
+            }}
+          >
+            <FaPlus /> {isAdding ? "Cancelar" : "Agregar nueva sanción"}
+          </button>
+
+          {isAdding && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* Fecha y Hora */}
+              <input
+                type="date"
+                placeholder="Fecha"
+                className="border rounded p-2"
+                value={formData.fechaSancion}
+                onChange={(e) => setFormData({ ...formData, fechaSancion: e.target.value })}
+              />
+               <input
+                type="time"
+                placeholder="Hora (Opcional)"
+                className="border rounded p-2"
+                value={formData.horaSancion}
+                onChange={(e) => setFormData({ ...formData, horaSancion: e.target.value })}
+              />
+
+              {/* Tipo */}
+              <input
+                type="text"
+                placeholder="Tipo (Ej: Multa, Pérdida de puestos...)"
+                className="border rounded p-2 lg:col-span-2"
+                value={formData.tipo}
+                onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+              />
+              
+              {/* Piloto (Dropdown) */}
+              <select
+                className="border rounded p-2"
+                value={formData.id_piloto}
+                onChange={(e) => setFormData({ ...formData, id_piloto: e.target.value })}
+              >
+                <option value="">Seleccione un piloto *</option>
+                {pilotos.map((p) => (
+                  <option key={p.id_piloto} value={p.id_piloto}>
+                    {p.nombre}
+                  </option>
+                ))}
+              </select>
+              
+              {/* Motivo y Descripción (Dos columnas para mejor distribución) */}
+              <input
+                type="text"
+                placeholder="Motivo *"
+                className="border rounded p-2 lg:col-span-2 sm:col-span-1"
+                value={formData.motivo}
+                onChange={(e) => setFormData({ ...formData, motivo: e.target.value })}
+              />
+              <input
+                type="text"
+                placeholder="Descripción (Opcional)"
+                className="border rounded p-2 lg:col-span-2 sm:col-span-1"
+                value={formData.descripcion}
+                onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+              />
+
+              <button
+                onClick={handleAddSancion}
+                disabled={!formData.fechaSancion || !formData.motivo || !formData.id_piloto || !formData.tipo}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-2 rounded-lg col-span-full font-semibold"
+              >
+                Guardar Sanción
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Listado */}
@@ -327,6 +531,29 @@ export default function SancionesCRUD() {
                                             </option>
                                         ))}
                                     </select>
+                                    <button
+                                        onClick={handleRemovePilotoFromSancion}
+                                        className="bg-red-200 hover:bg-red-300 text-red-700 p-2 rounded-lg flex items-center gap-1 transition-colors"
+                                        title="Quitar piloto de la sanción"
+                                    >
+                                        <FaEraser /> Quitar
+                                    </button>
+                                </div>
+
+                                {/* Botones Guardar/Cancelar */}
+                                <div className="flex gap-2 justify-end mt-2">
+                                    <button
+                                        onClick={handleSaveEdit}
+                                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                                    >
+                                        <FaSave /> Guardar
+                                    </button>
+                                    <button
+                                        onClick={() => setEditSancionId(null)}
+                                        className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                                    >
+                                        <FaTimes /> Cancelar
+                                    </button>
                                 </div>
                             </div>
                           ) : (
@@ -337,6 +564,22 @@ export default function SancionesCRUD() {
                                 {/* Mostrar los nuevos campos */}
                                 <div className="text-gray-700 text-sm mt-1 ml-2">
                                 </div>
+                              </div>
+                              <div className="flex gap-3 mt-2 md:mt-0 md:ml-4 flex-shrink-0">
+                                <button
+                                  onClick={() => handleEditSancion(s)}
+                                  className="text-yellow-600 hover:text-yellow-800"
+                                  title="Editar"
+                                >
+                                  <FaEdit />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteSancion(s.id_sancion)}
+                                  className="text-red-600 hover:text-red-800"
+                                  title="Eliminar"
+                                >
+                                  <FaTrash />
+                                </button>
                               </div>
                             </>
                           )}

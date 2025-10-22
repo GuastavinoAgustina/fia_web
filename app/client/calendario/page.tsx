@@ -12,8 +12,6 @@ type Evento = {
   evento: string;
   tipo: string;
   id_carrera?: number;
-  id_pruebaneumatico?: number;
-  id_control_tecnico?: number;
   [key: string]: any;
 };
 
@@ -71,16 +69,6 @@ export default function CalendarioPage() {
       .from("Carrera")
       .select("*");
 
-    // PruebaNeumatico
-    const { data: pruebas } = await supabase
-      .from("PruebaNeumatico")
-      .select("*");
-
-    // ControlTecnico
-    const { data: controles } = await supabase
-      .from("ControlTecnico")
-      .select("*");
-
     const eventosBD: Evento[] = [];
 
     if (carreras) {
@@ -91,28 +79,6 @@ export default function CalendarioPage() {
           evento: c.nombre ? `Carrera: ${c.nombre}` : `Carrera en ${c.lugar}`,
           tipo: "carrera",
           id_carrera: c.id_carrera
-        });
-      });
-    }
-    if (pruebas) {
-      pruebas.forEach((p: any) => {
-        eventosBD.push({
-          ...p,
-          fecha: p.fecha,
-          evento: "Prueba de Neumáticos",
-          tipo: "prueba",
-          id_prueba_neumatico: p.id_prueba_neumatico
-        });
-      });
-    }
-    if (controles) {
-      controles.forEach((ct: any) => {
-        eventosBD.push({
-          ...ct,
-          fecha: ct.fecha,
-          evento: "Control Técnico",
-          tipo: "control",
-          id_control_tecnico: ct.id_control_tecnico
         });
       });
     }
@@ -138,20 +104,6 @@ export default function CalendarioPage() {
         .select("*")
         .eq("id_carrera", evento.id_carrera);
       setDetalleExtra(corre ?? []);
-    }
-    if (evento.tipo === "prueba" && evento.id_prueba_neumatico) { // <-- corregido aquí
-      const { data: pruebas } = await supabase
-        .from("PruebaSobreEscuderia")
-        .select("*")
-        .eq("id_prueba_neumatico", evento.id_prueba_neumatico); // <-- corregido aquí
-      setDetalleExtra(pruebas ?? []);
-    }
-    if (evento.tipo === "control" && evento.id_control_tecnico) {
-      const { data: controles } = await supabase
-        .from("ControlSobreEscuderia")
-        .select("*")
-        .eq("id_control_tecnico", evento.id_control_tecnico);
-      setDetalleExtra(controles ?? []);
     }
 
     setLoadingDetalle(false);
@@ -244,20 +196,8 @@ export default function CalendarioPage() {
           puntaje: item.puntaje ?? null
         })));
         setDetallesResueltos(detalles);
-      } else if (eventoSeleccionado.tipo === "prueba") {
-        const detalles = await Promise.all(detalleExtra.map(async (item: any) => ({
-          escuderia: item.id_escuderia ? await getEscuderiaNombre(item.id_escuderia) : null,
-          informacion: item.informacion ?? null
-        })));
-        setDetallesResueltos(detalles);
-      } else if (eventoSeleccionado.tipo === "control") {
-        const detalles = await Promise.all(detalleExtra.map(async (item: any) => ({
-          escuderia: item.id_escuderia ? await getEscuderiaNombre(item.id_escuderia) : null,
-          id_control_tecnico: item.id_control_tecnico ?? null,
-          informacion: item.informacion ?? null
-        })));
-        setDetallesResueltos(detalles);
       }
+
       setDetallesCargando(false);
     })();
   }, [eventoSeleccionado, detalleExtra]);
@@ -293,7 +233,7 @@ export default function CalendarioPage() {
             <CalendarIcon className="h-8 w-8 text-red-600" />
             <h1 className="text-3xl font-bold">Calendario de Eventos</h1>
           </div>
-          <Link href="/team-member" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+          <Link href="/" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
             ← Página principal
           </Link>
         </div>
@@ -420,48 +360,6 @@ export default function CalendarioPage() {
                   ) : (
                     detallesResueltos.length > 0 && (
                       <>
-                        {/* Control Técnico */}
-                        {eventoSeleccionado.tipo === "control" && detallesResueltos.map((item, idx) => (
-                          <div key={idx} className="space-y-2">
-                            {item.escuderia && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-600">Escudería</label>
-                                <div className="text-black">{item.escuderia}</div>
-                              </div>
-                            )}
-                            {item.id_control_tecnico && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-600">Id de control técnico</label>
-                                <div className="text-black">{item.id_control_tecnico}</div>
-                              </div>
-                            )}
-                            {item.informacion && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-600">Más información</label>
-                                <div className="text-black">{item.informacion}</div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-
-                        {/* Prueba de Neumáticos */}
-                        {eventoSeleccionado.tipo === "prueba" && detallesResueltos.map((item, idx) => (
-                          <div key={idx} className="space-y-2">
-                            {item.escuderia && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-600">Escudería</label>
-                                <div className="text-black">{item.escuderia}</div>
-                              </div>
-                            )}
-                            {item.informacion && (
-                              <div>
-                                <label className="text-sm font-medium text-gray-600">Más información</label>
-                                <div className="text-black">{item.informacion}</div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-
                         {/* Carrera */}
                         {eventoSeleccionado.tipo === "carrera" && detallesResueltos.length > 0 && (
                           <div className="space-y-2">
