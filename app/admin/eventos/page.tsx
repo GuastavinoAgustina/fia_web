@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client"
-import { Evento } from "@/app/team-member/calendario/page";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Escuderia } from "@/app/client/escuderias/page";
+import { Piloto } from "../pilotos/page";
 
 export type Categoria = {
   id_categoria: number;
@@ -23,19 +23,22 @@ export type Carrera = {
     nombre: string;
     lugar : string;
     id_categoria : number;
+    fecha:string;
 }
 
 const supabase = createClient()
-
 const tiposEventos = ["Prueba de Neumáticos", "Control Técnico"]
 
 export default function CreateEventosPage() {
   const [tipoSeleccionado, setTipoSeleccionado] = useState<string | null>(null);
   const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
   const [listaCategorias, setListaCategorias] = useState<Categoria[]>([]);
+  const [listaCarreras, setListaCarreras] = useState<Carrera[]>([]);
   const [escuderiasConPilotos, setEscuderiasConPilotos] = useState<any[]>([]);
+  const [pilotosSeleccionados, setPilotosSeleccionados] = useState<Piloto[]>([]);
   const [selectedEvento, setSelectedEvento] = useState<string | null>(null);
   const [selectedEscuderia, setSelectedEscuderia] = useState<Escuderia | null>(null);
+  const [carreraEnEdicion, setCarreraEnEdicion] = useState<Carrera | null>(null);
 
   useEffect(() => {
     setSelectedCategoria(null);
@@ -66,10 +69,12 @@ export default function CreateEventosPage() {
       try{
         const { data: carrerasCat, error: errorCat } = await supabase
           .from("Carrera")
-          .select("id_carrera")
+          .select("id_carrera, nombre")
           .eq("id_categoria", selectedCategoria.id_categoria);
 
         if (errorCat) throw errorCat.message;
+        
+        setListaCarreras(carrerasCat as Carrera[]);
 
         const idsCarrerasCat = carrerasCat.map(c => c.id_carrera);
 
@@ -129,9 +134,17 @@ export default function CreateEventosPage() {
     fetchPilotosConEscuderiaDeCategoriaSelecionada();
   }, [selectedCategoria]);
 
+  async function handleEliminarCarrera(carrera: Carrera){
+    console.log(carrera)
+  }
+
+   async function handleEditarCarrera(carrera: Carrera){
+    console.log(carrera)
+  }
+
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <div className="mx-auto p-6 space-y-6">
         {Encabezado()}
 
         <SelectorTipoEvento onSeleccionar={setTipoSeleccionado} />
@@ -140,15 +153,28 @@ export default function CreateEventosPage() {
         {tipoSeleccionado && (
           <div className="mt-10 flex justify-center">
             {tipoSeleccionado === "carrera" ? (
-              <div className="flex flex-row gap-4 w-full items-start">
-                <PilotosCheckbox 
-                escuderiasConPilotos={escuderiasConPilotos} 
-                selectedCategoria={selectedCategoria}
+              <div className="flex flex-row gap-6 w-full items-start justify-center">
+                <MostrarPilotosCheckbox 
+                  escuderiasConPilotos={escuderiasConPilotos} 
+                  selectedCategoria={selectedCategoria}
+                  pilotosSeleccionados={pilotosSeleccionados}
+                  setPilotosSeleccionados={setPilotosSeleccionados}
                 />
                 <MostrarFormularioCarrera
                   listaCategorias={listaCategorias}
                   selectedCategoria={selectedCategoria}
                   setSelectedCategoria={setSelectedCategoria}
+                  pilotosSeleccionados={pilotosSeleccionados}
+                  carreraEnEdicion={carreraEnEdicion}
+                  setCarreraEnEdicion={setCarreraEnEdicion}
+                />
+                <MostrarListaCarreras
+                  selectedCategoria={selectedCategoria}
+                  listaCarreras={listaCarreras}
+                  onEditar={setCarreraEnEdicion}
+                  onEliminar={(carrera) => {
+                    handleEliminarCarrera(carrera)
+                  }}
                 />
               </div>
               ) : (
@@ -244,12 +270,16 @@ function CategoriasDropdown({
   );
 }
 
-function PilotosCheckbox({
+function MostrarPilotosCheckbox({
   escuderiasConPilotos,
   selectedCategoria,
+  pilotosSeleccionados,
+  setPilotosSeleccionados,
 } : {
   escuderiasConPilotos: any[];
   selectedCategoria: Categoria | null;
+  pilotosSeleccionados: Piloto[];
+  setPilotosSeleccionados: (pils: Piloto[]) => void;
 }){
     return (
     <div className="bg-gray-100 p-6 rounded-lg shadow-md w-auto">
@@ -273,7 +303,20 @@ function PilotosCheckbox({
                   )}
                   <span>{p.nombre}</span>
                 </div>
-                <input type="checkbox" className="form-checkbox" />
+                <input 
+                  type="checkbox" 
+                  className="form-checkbox"
+                  checked={pilotosSeleccionados.some(pil => pil.id_piloto === p.id_piloto)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setPilotosSeleccionados([...pilotosSeleccionados, p]);
+                    } else {
+                      setPilotosSeleccionados(
+                        pilotosSeleccionados.filter(pil => pil.id_piloto !== p.id_piloto)
+                      );
+                    }
+                  }} 
+                />
               </div>
             ))}
           </div>
@@ -287,28 +330,140 @@ function MostrarFormularioCarrera({
   listaCategorias,
   selectedCategoria,
   setSelectedCategoria,
+  pilotosSeleccionados,
+  carreraEnEdicion,
+  setCarreraEnEdicion,
 }: {
   listaCategorias: Categoria[];
   selectedCategoria: Categoria | null;
   setSelectedCategoria: (cat: Categoria) => void;
+  pilotosSeleccionados: Piloto[];
+  carreraEnEdicion: Carrera | null;
+  setCarreraEnEdicion: (c: Carrera | null) => void;
 }) {
-  return(
-    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-2xl">
-      <h2 className="text-xl font-semibold mb-4">Formulario de Carrera</h2>
+    const [error, setError] = useState<string | null>(null);
+    const [nombre, setNombre] = useState("");
+    const [lugar, setLugar] = useState("");
+    const [fecha, setFecha] = useState("");
 
-      <form className="flex flex-col gap-3">
+      useEffect(() => {
+    if (carreraEnEdicion) {
+      setNombre(carreraEnEdicion.nombre ?? "");
+      setLugar(carreraEnEdicion.lugar ?? "");
+      setFecha(carreraEnEdicion.fecha ?? "");
+    } else {
+      setNombre("");
+      setLugar("");
+      setFecha("");
+    }
+  }, [carreraEnEdicion]);
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!selectedCategoria || !nombre || !lugar || !fecha) {
+      setError(`Por favor, complete todos los campos`);
+      return;
+    }
+
+    console.log(pilotosSeleccionados);
+
+    if (pilotosSeleccionados.length === 0) {
+      setError("Debes seleccionar al menos un piloto.");
+      return;
+    }
+
+  if (carreraEnEdicion) {
+      console.log("Guardar cambios en carrera:", carreraEnEdicion.id_carrera, {
+        nombre,
+        lugar,
+        fecha,
+      });
+    } else {
+      console.log("Crear nueva carrera:", { nombre, lugar, fecha, categoria: selectedCategoria });
+    }
+
+    setCarreraEnEdicion(null);
+    setNombre("");
+    setLugar("");
+    setFecha("");
+  };
+
+  return(
+    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-xl">
+      <h2 className="text-xl font-semibold mb-4">{carreraEnEdicion ? "Editar carrera" : "Formulario de Carrera"}</h2>
+
+      <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
         <CategoriasDropdown
           listaCategorias={listaCategorias}
           selectedCategoria={selectedCategoria}
           setSelectedCategoria={setSelectedCategoria}
         />
-        <input type="text" placeholder="Nombre de la carrera" className="border p-2 rounded"/>
-        <input type="text" placeholder="Lugar de la carrera" className="border p-2 rounded"/>
-        <input type="date" className="border p-2 rounded"/>
-        <button className="bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700">Crear carrera</button>
+        <input name = "nombre" type="text" placeholder="Nombre de la carrera" 
+          className="border p-2 rounded" value={nombre ?? ""} onChange={(e) => setNombre(e.target.value)}/>
+        <input name = "lugar" type="text" placeholder="Lugar de la carrera" 
+          className="border p-2 rounded" value={lugar ?? ""} onChange={(e) => setLugar(e.target.value)}/>
+        <input name = "fecha" type="date" 
+          className="border p-2 rounded" value={fecha ?? ""} onChange={(e) => setFecha(e.target.value)}/>
+
+        {error && <p className="text-red-600 font-semibold">{error}</p>}
+
+        <button type="submit" 
+          className={`${
+            carreraEnEdicion
+              ? "bg-blue-600 hover:bg-blue-700"
+              : "bg-green-600 hover:bg-green-700"
+          } text-white font-semibold py-2 rounded`}>
+            {carreraEnEdicion ? "Guardar cambios" : "Crear carrera"}
+        </button>
       </form>
     </div>
 
+  );
+}
+
+function MostrarListaCarreras({
+  selectedCategoria,
+  listaCarreras,
+  onEditar,
+  onEliminar,
+}: {
+  selectedCategoria: Categoria | null;
+  listaCarreras: Carrera[];
+  onEditar: (car: Carrera) => void;
+  onEliminar?: (carrera: Carrera) => void;
+}) {
+   return (
+    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-1/4">
+      <h3 className="text-lg font-semibold mb-3">Carreras {selectedCategoria?.nombre}</h3>
+      {listaCarreras.length === 0 ? (
+        <p className="text-gray-600">No hay carreras disponibles.</p>
+      ) : (
+        listaCarreras.map((car) => (
+          <div
+            key={car.id_carrera}
+            className="bg-white flex items-center justify-between border p-2 rounded mb-4"
+          >
+            <span>{car.nombre}</span>
+            <div className="flex gap-2">
+              <button
+                className="bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700"
+                onClick={() => onEditar(car)}
+              >
+                Editar
+              </button>
+              <button
+                onClick={() => onEliminar && onEliminar(car)}
+                className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
   );
 }
 
@@ -396,7 +551,7 @@ function MostrarFormularioEvento({
   setSelectedEscuderia: (esc:Escuderia) => void;
 }) {
   return(
-    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-md">
+    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-xl">
       <h2 className="text-xl font-semibold mb-4">Formulario de Evento Deportivo</h2>
       <form className="flex flex-col gap-3">
         <CategoriasDropdown
