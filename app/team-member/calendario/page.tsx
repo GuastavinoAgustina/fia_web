@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
 
-type Evento = {
+export type Evento = {
   fecha: string;
   evento: string;
   tipo: string;

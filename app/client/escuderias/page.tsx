@@ -63,6 +63,18 @@ export default function EscuderiasPage() {
 
         if (errorPilcor) throw errorPilcor;
 
+        /*const { data: categorias, error: errorCats } = await supabase
+          .from("Categoria")
+          .select("id_categoria, nombre");
+
+        if (errorCats) throw errorCats; 
+
+        const { data: categoriaCarrera, error: errorCatCar } = await supabase
+          .from("CarreraTieneCategoria")
+          .select("id_carrera, id_categoria");
+
+        if (errorCatCar) throw errorCatCar;*/
+
         const categoria = "F1";
         const escuderiasConPilotos: Escuderia[] = escuderias.map((esc) => {
           const pilotosDeEsc = relaciones
