@@ -856,12 +856,67 @@ function MostrarFormularioControlTecnico({
   setSelectedCategoria: (cat: Categoria) => void;
   escuderias: Escuderia[];
   selectedEscuderia: Escuderia | null;
-  setSelectedEscuderia: (esc:Escuderia) => void;
+  setSelectedEscuderia: (esc:Escuderia | null) => void;
 }) {
+
+  const [fecha, setFecha] = useState("");
+  const [informacion, setInformacion] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const { addToast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!fecha) {
+      setError("Debe ingresar una fecha para el control.");
+      return;
+    }
+
+    if (!selectedEscuderia) {
+      setError("Debe seleccionar una escudería.");
+      return;
+    }
+
+    try {
+      //Crear el control
+      const { data: nuevoControl, error: errorInsertControl } = await supabase
+        .from("ControlTecnico")
+        .insert([{ fecha }])
+        .select()
+        .single();
+
+      if (errorInsertControl) throw errorInsertControl;
+
+      //Crear la relación en ControlSobreEscuderia
+      const { error: errorRelacion } = await supabase
+        .from("ControlSobreEscuderia")
+        .insert([
+          {
+            id_control_tecnico: nuevoControl.id_control_tecnico,
+            id_escuderia: selectedEscuderia.id_escuderia,
+            informacion,
+          },
+        ]);
+
+      if (errorRelacion) throw errorRelacion;
+
+      addToast("Control técnico registrado con éxito.");
+
+      // Limpiar formulario
+      setFecha("");
+      setInformacion("");
+      setSelectedEscuderia(null);
+    } catch (err) {
+      console.error("Error al crear el control:", err);
+      setError("Ocurrió un error al crear el control técnico.");
+    }
+  };
+
   return(
     <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-xl">
       <h2 className="text-xl font-semibold mb-4">Formulario de Control Técnico</h2>
-      <form className="flex flex-col gap-3">
+      <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
         <CategoriasDropdown
           listaCategorias={listaCategorias}
           selectedCategoria={selectedCategoria}
@@ -872,10 +927,11 @@ function MostrarFormularioControlTecnico({
           selectedEscuderia={selectedEscuderia}
           setSelectedEscuderia={setSelectedEscuderia}
         />
-        <input type="text" placeholder="Nombre del control" className="border p-2 rounded"/>
-        <input type="text" placeholder="Información del control" className="border p-2 rounded"/>
-        <input type="date" className="border p-2 rounded" />
-        <button className="bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700">Crear evento</button>
+        <input type="date" className="border p-2 rounded" value={fecha} onChange={(e)=>setFecha(e.target.value)}/>
+        <input type="text" placeholder="Información del control" className="border p-2 rounded" 
+              value={informacion} onChange={(e)=>setInformacion(e.target.value)}/>
+        {error && <p className="text-red-600 font-semibold">{error}</p>}
+        <button type="submit" className="bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700">Crear Control</button>
       </form>
     </div>
   );
