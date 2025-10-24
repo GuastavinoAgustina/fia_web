@@ -811,7 +811,7 @@ function MostrarFormularioPruebaNeumaticos({
     setError(null);
 
     if (!fecha || !selectedEscuderia) {
-      setError("Debe completar todos los campos.");
+      setError(`Por favor, complete todos los campos`);
       return;
     }
 
@@ -1082,7 +1082,7 @@ function MostrarFormularioControlTecnico({
     setError(null);
 
     if (!fecha || !selectedEscuderia) {
-      setError("Debe completar todos los campos.");
+      setError(`Por favor, complete todos los campos`);
       return;
     }
 
