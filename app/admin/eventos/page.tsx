@@ -38,6 +38,9 @@ export default function CreateEventosPage() {
   const [pilotosSeleccionados, setPilotosSeleccionados] = useState<Piloto[]>([]);
   const [selectedEscuderia, setSelectedEscuderia] = useState<Escuderia | null>(null);
   const [carreraEnEdicion, setCarreraEnEdicion] = useState<Carrera | null>(null);
+  const [controlEnEdicion, setControlEnEdicion] = useState<any | null>(null);
+  const [pruebaEnEdicion, setPruebaEnEdicion] = useState<any | null>(null);
+
   const { addToast } = useToast()
 
   useEffect(() => {
@@ -142,7 +145,7 @@ export default function CreateEventosPage() {
 
   const fetchEscuderiasDeCategoria = async () => {
     try {
-      // 1️⃣ Buscar todas las carreras de esa categoría
+      // Buscar todas las carreras de esa categoría
       const { data: carreras, error: errorCarreras } = await supabase
         .from("Carrera")
         .select("id_carrera")
@@ -157,7 +160,7 @@ export default function CreateEventosPage() {
 
       const idsCarreras = carreras.map(c => c.id_carrera);
 
-      // 2️⃣ Buscar las relaciones Corre (id_escuderia, id_piloto)
+      // Buscar las relaciones Corre (id_escuderia, id_piloto)
       const { data: corre, error: errorCorre } = await supabase
         .from("Corre")
         .select("id_escuderia, id_piloto")
@@ -170,7 +173,7 @@ export default function CreateEventosPage() {
         return;
       }
 
-      // 3️⃣ Obtener todas las escuderías involucradas
+      // Obtener todas las escuderías involucradas
       const idsEscuderias = [...new Set(corre.map(c => c.id_escuderia))];
       const { data: escuderias, error: errorEsc } = await supabase
         .from("Escuderia")
@@ -179,7 +182,7 @@ export default function CreateEventosPage() {
 
       if (errorEsc) throw errorEsc;
 
-      // 4️⃣ Obtener los pilotos correspondientes
+      // Obtener los pilotos correspondientes
       const idsPilotos = [...new Set(corre.map(c => c.id_piloto))];
       const { data: pilotos, error: errorPil } = await supabase
         .from("Piloto")
@@ -188,7 +191,7 @@ export default function CreateEventosPage() {
 
       if (errorPil) throw errorPil;
 
-      // 5️⃣ Unir escuderías con sus pilotos
+      // Unir escuderías con sus pilotos
       const resultado = escuderias.map(esc => ({
         ...esc,
         pilotos: pilotos.filter(p =>
@@ -299,24 +302,38 @@ export default function CreateEventosPage() {
                 />
               </div>
               ) : (
-                tipoSeleccionado === "pruebaNeumaticos" ? (
-              <MostrarFormularioPruebaNeumaticos
-                listaCategorias={listaCategorias}
-                selectedCategoria={selectedCategoria}
-                setSelectedCategoria={setSelectedCategoria}
-                escuderias={escuderiasConPilotos}
-                selectedEscuderia={selectedEscuderia}
-                setSelectedEscuderia={setSelectedEscuderia}
-              />
+              tipoSeleccionado === "pruebaNeumaticos" ? (
+                <div className="flex flex-row gap-6 w-full items-start justify-center h-screen">
+                  <MostrarFormularioPruebaNeumaticos
+                    listaCategorias={listaCategorias}
+                    selectedCategoria={selectedCategoria}
+                    setSelectedCategoria={setSelectedCategoria}
+                    escuderias={escuderiasConPilotos}
+                    selectedEscuderia={selectedEscuderia}
+                    setSelectedEscuderia={setSelectedEscuderia}
+                    pruebaEnEdicion={pruebaEnEdicion}
+                    setPruebaEnEdicion={setPruebaEnEdicion}
+                  />
+                  <MostrarListaPruebaNeumaticos
+                    onEditar={setPruebaEnEdicion}
+                  />
+                </div>
               ) : (
-                <MostrarFormularioControlTecnico
-                listaCategorias={listaCategorias}
-                selectedCategoria={selectedCategoria}
-                setSelectedCategoria={setSelectedCategoria}
-                escuderias={escuderiasConPilotos}
-                selectedEscuderia={selectedEscuderia}
-                setSelectedEscuderia={setSelectedEscuderia}
-              />
+                <div className="flex flex-row gap-6 w-full items-start justify-center h-screen">
+                  <MostrarFormularioControlTecnico
+                  listaCategorias={listaCategorias}
+                  selectedCategoria={selectedCategoria}
+                  setSelectedCategoria={setSelectedCategoria}
+                  escuderias={escuderiasConPilotos}
+                  selectedEscuderia={selectedEscuderia}
+                  setSelectedEscuderia={setSelectedEscuderia}
+                  controlEnEdicion={controlEnEdicion}
+                  setControlEnEdicion={setControlEnEdicion}
+                  />
+                  <MostrarListaControlTecnico
+                    onEditar={setControlEnEdicion}
+                  />
+                </div>
               )
             )}
           </div>
@@ -755,6 +772,8 @@ function MostrarFormularioPruebaNeumaticos({
   escuderias,
   selectedEscuderia,
   setSelectedEscuderia,
+  pruebaEnEdicion,
+  setPruebaEnEdicion,
 }: {
   listaCategorias: Categoria[];
   selectedCategoria: Categoria | null;
@@ -762,6 +781,8 @@ function MostrarFormularioPruebaNeumaticos({
   escuderias: Escuderia[];
   selectedEscuderia: Escuderia | null;
   setSelectedEscuderia: (esc: Escuderia | null) => void;
+  pruebaEnEdicion: any | null;
+  setPruebaEnEdicion: (p: any | null) => void;
 }) {
 
   const [fecha, setFecha] = useState("");
@@ -769,58 +790,101 @@ function MostrarFormularioPruebaNeumaticos({
   const [error, setError] = useState<string | null>(null);
   const { addToast } = useToast();
 
+  useEffect(() => {
+    setError(null);
+    if (pruebaEnEdicion) {
+      setFecha(pruebaEnEdicion.fecha || "");
+      setInformacion(pruebaEnEdicion.PruebaSobreEscuderia?.[0]?.informacion || "");
+      const escuderiaEdit = escuderias.find(
+        e => e.id_escuderia === pruebaEnEdicion.PruebaSobreEscuderia?.[0]?.id_escuderia
+      );
+      setSelectedEscuderia(escuderiaEdit || null);
+    } else {
+      setFecha("");
+      setInformacion("");
+      setSelectedEscuderia(null);
+    }
+  }, [pruebaEnEdicion]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
-    if (!fecha) {
-      setError("Debe ingresar una fecha para la prueba.");
-      return;
-    }
-
-    if (!selectedEscuderia) {
-      setError("Debe seleccionar una escudería.");
+    if (!fecha || !selectedEscuderia) {
+      setError("Debe completar todos los campos.");
       return;
     }
 
     try {
-      //Crear la prueba
-      const { data: nuevaPrueba, error: errorInsertPrueba } = await supabase
-        .from("PruebaNeumatico")
-        .insert([{ fecha }])
-        .select()
-        .single();
+      if (pruebaEnEdicion) {
+        // Editar prueba existente
+        const { error: errorUpdate } = await supabase
+          .from("PruebaNeumatico")
+          .update({ fecha })
+          .eq("id_prueba_neumatico", pruebaEnEdicion.id_prueba_neumatico);
 
-      if (errorInsertPrueba) throw errorInsertPrueba;
+        if (errorUpdate) throw errorUpdate;
 
-      //Crear la relación en PruebaSobreEscuderia
-      const { error: errorRelacion } = await supabase
-        .from("PruebaSobreEscuderia")
-        .insert([
-          {
-            id_prueba_neumatico: nuevaPrueba.id_prueba_neumatico,
+        const { error: errorRelacion } = await supabase
+          .from("PruebaSobreEscuderia")
+          .update({
             id_escuderia: selectedEscuderia.id_escuderia,
             informacion,
-          },
-        ]);
+          })
+          .eq("id_prueba_neumatico", pruebaEnEdicion.id_prueba_neumatico);
 
-      if (errorRelacion) throw errorRelacion;
+        if (errorRelacion) throw errorRelacion;
 
-      addToast("Prueba de neumáticos registrada con éxito.");
+        addToast("Prueba de neumáticos actualizada con éxito.");
+      } else {
+        // Crear nueva prueba
+        const { data: nuevaPrueba, error: errorInsertPrueba } = await supabase
+          .from("PruebaNeumatico")
+          .insert([{ fecha }])
+          .select()
+          .single();
+
+        if (errorInsertPrueba) throw errorInsertPrueba;
+
+        const { error: errorRelacion } = await supabase
+          .from("PruebaSobreEscuderia")
+          .insert([
+            {
+              id_prueba_neumatico: nuevaPrueba.id_prueba_neumatico,
+              id_escuderia: selectedEscuderia.id_escuderia,
+              informacion,
+            },
+          ]);
+
+        if (errorRelacion) throw errorRelacion;
+
+        addToast("Prueba de neumáticos registrada con éxito.");
+      }
 
       // Limpiar formulario
+      setPruebaEnEdicion(null);
       setFecha("");
       setInformacion("");
       setSelectedEscuderia(null);
     } catch (err) {
-      console.error("Error al crear la prueba:", err);
-      setError("Ocurrió un error al crear la prueba de neumáticos.");
+      console.error("Error al guardar la prueba:", err);
+      setError("Ocurrió un error al guardar la prueba de neumáticos.");
     }
   };
 
+  const handleCancelarEdicion = () => {
+    setPruebaEnEdicion(null);
+    setFecha("");
+    setInformacion("");
+    setSelectedEscuderia(null);
+  };
+
+
   return(
     <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-xl">
-      <h2 className="text-xl font-semibold mb-4">Formulario de la Prueba de Neumáticos</h2>
+      <h2 className="text-xl font-semibold mb-4">
+        {pruebaEnEdicion ? "Editar Prueba de Neumáticos" : "Formulario de la Prueba de Neumáticos"}
+      </h2>
       <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
         <CategoriasDropdown
           listaCategorias={listaCategorias}
@@ -837,8 +901,137 @@ function MostrarFormularioPruebaNeumaticos({
         <input type="text" placeholder="Información de la prueba" className="border p-2 rounded" 
               value={informacion} onChange={(e)=>setInformacion(e.target.value)}/>
         {error && <p className="text-red-600 font-semibold">{error}</p>}
-        <button type="submit" className="bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700">Crear Prueba</button>
+
+         <div className="flex gap-2">
+          <button
+            type="submit"
+            className={`${
+              pruebaEnEdicion ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"
+            } text-white font-semibold py-2 px-4 rounded w-full`}
+          >
+            {pruebaEnEdicion ? "Guardar cambios" : "Crear Prueba"}
+          </button>
+
+          {pruebaEnEdicion && (
+            <button
+              type="button"
+              onClick={handleCancelarEdicion}
+              className="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded w-full"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
+
       </form>
+    </div>
+  );
+}
+
+function MostrarListaPruebaNeumaticos({
+  onEditar,
+}: {
+  onEditar: (prueba: any) => void;
+}) {
+  const [listaPruebas, setListaPruebas] = useState<any[]>([]);
+  const { addToast } = useToast();
+
+  //Cargar las pruebas desde la BD
+  useEffect(() => {
+    const fetchPruebas = async () => {
+      const { data, error } = await supabase
+        .from("PruebaNeumatico")
+        .select(`
+          id_prueba_neumatico,
+          fecha,
+          PruebaSobreEscuderia (
+            id_escuderia,
+            informacion,
+            Escuderia (nombre)
+          )
+        `)
+        .order("fecha", { ascending: false });
+
+      if (error) {
+        console.error("Error al cargar pruebas:", error);
+        addToast("Error al cargar las pruebas.");
+      } else {
+        setListaPruebas(data);
+      }
+    };
+
+    fetchPruebas();
+  }, []);
+
+  //Eliminar prueba
+  const handleEliminar = async (id_prueba: number) => {
+    if (!confirm("¿Seguro que deseas eliminar esta prueba de neumáticos?")) return;
+
+    try {
+      //Borrar relación
+      const { error: errorRelacion } = await supabase
+        .from("PruebaSobreEscuderia")
+        .delete()
+        .eq("id_prueba_neumatico", id_prueba);
+      if (errorRelacion) throw errorRelacion;
+
+      //Borrar prueba
+      const { error: errorPrueba } = await supabase
+        .from("PruebaNeumatico")
+        .delete()
+        .eq("id_prueba_neumatico", id_prueba);
+      if (errorPrueba) throw errorPrueba;
+
+      //Actualizar lista local
+      setListaPruebas(prev => prev.filter(p => p.id_prueba_neumatico !== id_prueba));
+
+      addToast("Prueba eliminada con éxito.");
+    } catch (err) {
+      console.error("Error al eliminar la prueba:", err);
+      addToast("Ocurrió un error al eliminar la prueba.");
+    }
+  };
+
+  return (
+    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-1/3 overflow-y-auto max-h-[70vh]">
+      <h3 className="text-lg font-semibold mb-3">Pruebas de Neumáticos</h3>
+
+      {listaPruebas.length === 0 ? (
+        <p className="text-gray-600">No hay pruebas registradas.</p>
+      ) : (
+        listaPruebas.map(prueba => (
+          <div
+            key={prueba.id_prueba_neumatico}
+            className="bg-white border p-3 rounded mb-3 shadow-sm"
+          >
+            <p className="font-semibold">Fecha: {prueba.fecha}</p>
+            {prueba.PruebaSobreEscuderia?.[0] && (
+              <>
+                <p>
+                  <strong>Escudería:</strong> {prueba.PruebaSobreEscuderia[0].Escuderia?.nombre}
+                </p>
+                <p>
+                  <strong>Info:</strong> {prueba.PruebaSobreEscuderia[0].informacion}
+                </p>
+              </>
+            )}
+            <div className="flex justify-end gap-2 mt-2">
+               <button
+                onClick={() => onEditar(prueba)}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
+              >
+                Editar
+              </button>
+              <button
+                onClick={() => handleEliminar(prueba.id_prueba_neumatico)}
+                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
@@ -850,6 +1043,8 @@ function MostrarFormularioControlTecnico({
   escuderias,
   selectedEscuderia,
   setSelectedEscuderia,
+  controlEnEdicion,
+  setControlEnEdicion,
 }: {
   listaCategorias: Categoria[];
   selectedCategoria: Categoria | null;
@@ -857,6 +1052,8 @@ function MostrarFormularioControlTecnico({
   escuderias: Escuderia[];
   selectedEscuderia: Escuderia | null;
   setSelectedEscuderia: (esc:Escuderia | null) => void;
+  controlEnEdicion: any | null;
+  setControlEnEdicion: (c: any | null) => void;
 }) {
 
   const [fecha, setFecha] = useState("");
@@ -864,58 +1061,100 @@ function MostrarFormularioControlTecnico({
   const [error, setError] = useState<string | null>(null);
   const { addToast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    setError(null);
+    if (controlEnEdicion) {
+      setFecha(controlEnEdicion.fecha || "");
+      setInformacion(controlEnEdicion.ControlSobreEscuderia?.[0]?.informacion || "");
+      const escuderiaEdit = escuderias.find(
+        e => e.id_escuderia === controlEnEdicion.ControlSobreEscuderia?.[0]?.id_escuderia
+      );
+      setSelectedEscuderia(escuderiaEdit || null);
+    } else {
+      setFecha("");
+      setInformacion("");
+      setSelectedEscuderia(null);
+    }
+  }, [controlEnEdicion]);
+
+ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
-    if (!fecha) {
-      setError("Debe ingresar una fecha para el control.");
-      return;
-    }
-
-    if (!selectedEscuderia) {
-      setError("Debe seleccionar una escudería.");
+    if (!fecha || !selectedEscuderia) {
+      setError("Debe completar todos los campos.");
       return;
     }
 
     try {
-      //Crear el control
-      const { data: nuevoControl, error: errorInsertControl } = await supabase
-        .from("ControlTecnico")
-        .insert([{ fecha }])
-        .select()
-        .single();
+      if (controlEnEdicion) {
+        //Editar control técnico existente
+        const { error: errorUpdate } = await supabase
+          .from("ControlTecnico")
+          .update({ fecha })
+          .eq("id_control_tecnico", controlEnEdicion.id_control_tecnico);
 
-      if (errorInsertControl) throw errorInsertControl;
+        if (errorUpdate) throw errorUpdate;
 
-      //Crear la relación en ControlSobreEscuderia
-      const { error: errorRelacion } = await supabase
-        .from("ControlSobreEscuderia")
-        .insert([
-          {
-            id_control_tecnico: nuevoControl.id_control_tecnico,
+        const { error: errorRelacion } = await supabase
+          .from("ControlSobreEscuderia")
+          .update({
             id_escuderia: selectedEscuderia.id_escuderia,
             informacion,
-          },
-        ]);
+          })
+          .eq("id_control_tecnico", controlEnEdicion.id_control_tecnico);
 
-      if (errorRelacion) throw errorRelacion;
+        if (errorRelacion) throw errorRelacion;
 
-      addToast("Control técnico registrado con éxito.");
+        addToast("Control técnico actualizado con éxito.");
+      } else {
+        //Crear nuevo control
+        const { data: nuevoControl, error: errorInsertControl } = await supabase
+          .from("ControlTecnico")
+          .insert([{ fecha }])
+          .select()
+          .single();
 
-      // Limpiar formulario
+        if (errorInsertControl) throw errorInsertControl;
+
+        const { error: errorRelacion } = await supabase
+          .from("ControlSobreEscuderia")
+          .insert([
+            {
+              id_control_tecnico: nuevoControl.id_control_tecnico,
+              id_escuderia: selectedEscuderia.id_escuderia,
+              informacion,
+            },
+          ]);
+
+        if (errorRelacion) throw errorRelacion;
+
+        addToast("Control técnico registrado con éxito.");
+      }
+
+      // Reset
+      setControlEnEdicion(null);
       setFecha("");
       setInformacion("");
       setSelectedEscuderia(null);
     } catch (err) {
-      console.error("Error al crear el control:", err);
-      setError("Ocurrió un error al crear el control técnico.");
+      console.error("Error al guardar el control:", err);
+      setError("Ocurrió un error al guardar el control técnico.");
     }
+  };
+
+  const handleCancelarEdicion = () => {
+    setControlEnEdicion(null);
+    setFecha("");
+    setInformacion("");
+    setSelectedEscuderia(null);
   };
 
   return(
     <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-xl">
-      <h2 className="text-xl font-semibold mb-4">Formulario de Control Técnico</h2>
+      <h2 className="text-xl font-semibold mb-4">
+        {controlEnEdicion ? "Editar Control Técnico" : "Formulario de Control Técnico"}
+      </h2>
       <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
         <CategoriasDropdown
           listaCategorias={listaCategorias}
@@ -931,8 +1170,137 @@ function MostrarFormularioControlTecnico({
         <input type="text" placeholder="Información del control" className="border p-2 rounded" 
               value={informacion} onChange={(e)=>setInformacion(e.target.value)}/>
         {error && <p className="text-red-600 font-semibold">{error}</p>}
-        <button type="submit" className="bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700">Crear Control</button>
+
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            className={`${
+              controlEnEdicion ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"
+            } text-white font-semibold py-2 px-4 rounded w-full`}
+          >
+            {controlEnEdicion ? "Guardar cambios" : "Crear Control"}
+          </button>
+
+          {controlEnEdicion && (
+            <button
+              type="button"
+              onClick={handleCancelarEdicion}
+              className="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded w-full"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
+
       </form>
+    </div>
+  );
+}
+
+function MostrarListaControlTecnico({
+  onEditar,
+}: {
+  onEditar: (control: any) => void;
+}) {
+  const [listaControles, setListaControles] = useState<any[]>([]);
+  const { addToast } = useToast();
+
+  //Cargar controles técnicos desde la base de datos
+  useEffect(() => {
+    const fetchControles = async () => {
+      const { data, error } = await supabase
+        .from("ControlTecnico")
+        .select(`
+          id_control_tecnico,
+          fecha,
+          ControlSobreEscuderia (
+            id_escuderia,
+            informacion,
+            Escuderia (nombre)
+          )
+        `)
+        .order("fecha", { ascending: false });
+
+      if (error) {
+        console.error("Error al cargar controles:", error);
+        addToast("Error al cargar los controles técnicos.");
+      } else {
+        setListaControles(data);
+      }
+    };
+
+    fetchControles();
+  }, []);
+
+  //Eliminar control técnico
+  const handleEliminar = async (id_control: number) => {
+    if (!confirm("¿Seguro que deseas eliminar este control técnico?")) return;
+
+    try {
+      //Borrar relación ControlSobreEscuderia
+      const { error: errorRelacion } = await supabase
+        .from("ControlSobreEscuderia")
+        .delete()
+        .eq("id_control_tecnico", id_control);
+      if (errorRelacion) throw errorRelacion;
+
+      //Borrar control técnico
+      const { error: errorControl } = await supabase
+        .from("ControlTecnico")
+        .delete()
+        .eq("id_control_tecnico", id_control);
+      if (errorControl) throw errorControl;
+
+      //Actualizar lista local
+      setListaControles(prev => prev.filter(c => c.id_control_tecnico !== id_control));
+
+      addToast("Control técnico eliminado con éxito.");
+    } catch (err) {
+      console.error("Error al eliminar el control:", err);
+      addToast("Ocurrió un error al eliminar el control técnico.");
+    }
+  };
+
+  return (
+    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-1/3 overflow-y-auto max-h-[70vh]">
+      <h3 className="text-lg font-semibold mb-3">Controles Técnicos</h3>
+
+      {listaControles.length === 0 ? (
+        <p className="text-gray-600">No hay controles registrados.</p>
+      ) : (
+        listaControles.map(control => (
+          <div
+            key={control.id_control_tecnico}
+            className="bg-white border p-3 rounded mb-3 shadow-sm"
+          >
+            <p className="font-semibold">Fecha: {control.fecha}</p>
+            {control.ControlSobreEscuderia?.[0] && (
+              <>
+                <p>
+                  <strong>Escudería:</strong> {control.ControlSobreEscuderia[0].Escuderia?.nombre}
+                </p>
+                <p>
+                  <strong>Info:</strong> {control.ControlSobreEscuderia[0].informacion}
+                </p>
+              </>
+            )}
+            <div className="flex justify-end gap-2 mt-2">
+              <button
+                onClick={() => onEditar(control)}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
+              >
+                Editar
+              </button>
+              <button
+                onClick={() => handleEliminar(control.id_control_tecnico)}
+                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
