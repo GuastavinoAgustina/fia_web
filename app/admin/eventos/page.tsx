@@ -43,7 +43,9 @@ export default function CreateEventosPage() {
   const { addToast } = useToast()
 
   useEffect(() => {
-    setSelectedCategoria(null);
+    setSelectedCategoria(null);  
+    setCarreraEnEdicion(null);
+    setPilotosSeleccionados([]);
   }, [tipoSeleccionado]);
 
   useEffect(() => {
@@ -65,6 +67,7 @@ export default function CreateEventosPage() {
 
     fetchCategorias();
 
+    if (tipoSeleccionado !== "carrera") return;
     if(!selectedCategoria) return;
 
     const fetchPilotosConEscuderiaDeCategoriaSelecionada = async() =>{
@@ -333,7 +336,7 @@ function MostrarPilotosCheckbox({
   setPilotosSeleccionados: (pils: Piloto[]) => void;
 }){
     return (
-    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-auto">
+    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-1/4">
       <h3 className="text-lg font-semibold mb-3">Pilotos de la categoría {selectedCategoria?.nombre}</h3>
       {escuderiasConPilotos.map((esc) => (
         <div key={esc.id_escuderia} className="mb-4">
@@ -540,7 +543,7 @@ function MostrarFormularioCarrera({
     };
 
   return(
-    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-xl">
+    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-2/4 max-w-xl">
       <h2 className="text-xl font-semibold mb-4">{carreraEnEdicion ? "Editar carrera" : "Formulario de Carrera"}</h2>
 
       <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
