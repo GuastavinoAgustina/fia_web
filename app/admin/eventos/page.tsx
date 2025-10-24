@@ -28,7 +28,6 @@ export type Carrera = {
 }
 
 const supabase = createClient()
-const tiposEventos = ["Prueba de Neumáticos", "Control Técnico"]
 
 export default function CreateEventosPage() {
   const [tipoSeleccionado, setTipoSeleccionado] = useState<string | null>(null);
@@ -37,7 +36,6 @@ export default function CreateEventosPage() {
   const [listaCarreras, setListaCarreras] = useState<Carrera[]>([]);
   const [escuderiasConPilotos, setEscuderiasConPilotos] = useState<any[]>([]);
   const [pilotosSeleccionados, setPilotosSeleccionados] = useState<Piloto[]>([]);
-  const [selectedEvento, setSelectedEvento] = useState<string | null>(null);
   const [selectedEscuderia, setSelectedEscuderia] = useState<Escuderia | null>(null);
   const [carreraEnEdicion, setCarreraEnEdicion] = useState<Carrera | null>(null);
   const { addToast } = useToast()
@@ -139,6 +137,75 @@ export default function CreateEventosPage() {
     fetchPilotosConEscuderiaDeCategoriaSelecionada();
   }, [selectedCategoria]);
 
+   useEffect(() => {
+  if (!selectedCategoria) return;
+
+  const fetchEscuderiasDeCategoria = async () => {
+    try {
+      // 1️⃣ Buscar todas las carreras de esa categoría
+      const { data: carreras, error: errorCarreras } = await supabase
+        .from("Carrera")
+        .select("id_carrera")
+        .eq("id_categoria", selectedCategoria.id_categoria);
+
+      if (errorCarreras) throw errorCarreras;
+
+      if (!carreras || carreras.length === 0) {
+        setEscuderiasConPilotos([]);
+        return;
+      }
+
+      const idsCarreras = carreras.map(c => c.id_carrera);
+
+      // 2️⃣ Buscar las relaciones Corre (id_escuderia, id_piloto)
+      const { data: corre, error: errorCorre } = await supabase
+        .from("Corre")
+        .select("id_escuderia, id_piloto")
+        .in("id_carrera", idsCarreras);
+
+      if (errorCorre) throw errorCorre;
+
+      if (!corre || corre.length === 0) {
+        setEscuderiasConPilotos([]);
+        return;
+      }
+
+      // 3️⃣ Obtener todas las escuderías involucradas
+      const idsEscuderias = [...new Set(corre.map(c => c.id_escuderia))];
+      const { data: escuderias, error: errorEsc } = await supabase
+        .from("Escuderia")
+        .select("id_escuderia, nombre, logo, color")
+        .in("id_escuderia", idsEscuderias);
+
+      if (errorEsc) throw errorEsc;
+
+      // 4️⃣ Obtener los pilotos correspondientes
+      const idsPilotos = [...new Set(corre.map(c => c.id_piloto))];
+      const { data: pilotos, error: errorPil } = await supabase
+        .from("Piloto")
+        .select("id_piloto, nombre, foto")
+        .in("id_piloto", idsPilotos);
+
+      if (errorPil) throw errorPil;
+
+      // 5️⃣ Unir escuderías con sus pilotos
+      const resultado = escuderias.map(esc => ({
+        ...esc,
+        pilotos: pilotos.filter(p =>
+          corre.some(c => c.id_escuderia === esc.id_escuderia && c.id_piloto === p.id_piloto)
+        ),
+      }));
+
+      setEscuderiasConPilotos(resultado.sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    } catch (error) {
+      console.error("Error al cargar escuderías por categoría:", error);
+      setEscuderiasConPilotos([]);
+    }
+  };
+
+  fetchEscuderiasDeCategoria();
+}, [selectedCategoria]);
+
   async function handleEditarCarrera(carrera: Carrera){
      setCarreraEnEdicion(carrera);
 
@@ -196,8 +263,8 @@ export default function CreateEventosPage() {
 }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="mx-auto p-6 space-y-6">
+    <div className="h-screen bg-white">
+      <div className="mx-auto p-6 space-y-7">
         {Encabezado()}
 
         <SelectorTipoEvento onSeleccionar={setTipoSeleccionado} />
@@ -206,7 +273,7 @@ export default function CreateEventosPage() {
         {tipoSeleccionado && (
           <div className="mt-10 flex justify-center">
             {tipoSeleccionado === "carrera" ? (
-              <div className="flex flex-row gap-6 w-full items-start justify-center">
+              <div className="flex flex-row gap-6 w-full items-start justify-center h-screen">
                 <MostrarPilotosCheckbox 
                   escuderiasConPilotos={escuderiasConPilotos} 
                   selectedCategoria={selectedCategoria}
@@ -232,17 +299,25 @@ export default function CreateEventosPage() {
                 />
               </div>
               ) : (
-              <MostrarFormularioEvento
+                tipoSeleccionado === "pruebaNeumaticos" ? (
+              <MostrarFormularioPruebaNeumaticos
                 listaCategorias={listaCategorias}
                 selectedCategoria={selectedCategoria}
                 setSelectedCategoria={setSelectedCategoria}
-                listaEventos={tiposEventos}
-                selectedEvento={selectedEvento}
-                setSelectedEvento={setSelectedEvento}
                 escuderias={escuderiasConPilotos}
                 selectedEscuderia={selectedEscuderia}
                 setSelectedEscuderia={setSelectedEscuderia}
               />
+              ) : (
+                <MostrarFormularioControlTecnico
+                listaCategorias={listaCategorias}
+                selectedCategoria={selectedCategoria}
+                setSelectedCategoria={setSelectedCategoria}
+                escuderias={escuderiasConPilotos}
+                selectedEscuderia={selectedEscuderia}
+                setSelectedEscuderia={setSelectedEscuderia}
+              />
+              )
             )}
           </div>
         )}
@@ -276,17 +351,23 @@ function SelectorTipoEvento({ onSeleccionar }: { onSeleccionar: (tipo: string) =
     <div className="text-xl flex justify-center mt-10">
       <div className="flex gap-6">
         <button
-          onClick={() => onSeleccionar("evento")}
-          className="px-8 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-all"
-        >
-          Evento
-        </button>
-
-        <button
           onClick={() => onSeleccionar("carrera")}
           className="px-8 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-all"
         >
           Carrera
+        </button>
+        <button
+          onClick={() => onSeleccionar("pruebaNeumaticos")}
+          className="px-8 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-all"
+        >
+          Prueba de Neumáticos
+        </button>
+
+        <button
+          onClick={() => onSeleccionar("controlTecnico")}
+          className="px-8 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-all"
+        >
+          Control Técnico
         </button>
       </div>
     </div>
@@ -336,7 +417,7 @@ function MostrarPilotosCheckbox({
   setPilotosSeleccionados: (pils: Piloto[]) => void;
 }){
     return (
-    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-1/4">
+    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-1/4 h-1/2 overflow-y-auto">
       <h3 className="text-lg font-semibold mb-3">Pilotos de la categoría {selectedCategoria?.nombre}</h3>
       {escuderiasConPilotos.map((esc) => (
         <div key={esc.id_escuderia} className="mb-4">
@@ -405,6 +486,7 @@ function MostrarFormularioCarrera({
     const [nombre, setNombre] = useState("");
     const [lugar, setLugar] = useState("");
     const [fecha, setFecha] = useState("");
+    const { addToast } = useToast();
 
     useEffect(() => {
       setError(null);
@@ -485,6 +567,7 @@ function MostrarFormularioCarrera({
         }
 
         console.log("Carrera actualizada con éxito.");
+        addToast("Carrera actualizada con éxito.");
 
       } else {
         // ---- NUEVA CARRERA ----
@@ -509,6 +592,7 @@ function MostrarFormularioCarrera({
         if (errorInsertCorre) throw errorInsertCorre.message;
 
         console.log("Carrera creada con éxito.");
+        addToast("Carrera creada con éxito.");
       }
 
       // Limpiar formulario
@@ -633,37 +717,6 @@ function MostrarListaCarreras({
   );
 }
 
-function TipoEventoDropdown({
-  listaEventos,
-  selectedEvento,
-  setSelectedEvento,
-}: {
-  listaEventos: string[];
-  selectedEvento: string | null;
-  setSelectedEvento: (ev:string) => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="w-full justify-between">
-          {selectedEvento ? selectedEvento : "Tipo de Evento"}
-        </Button>
-      </DropdownMenuTrigger>
-     <DropdownMenuContent className="w-full">
-        {listaEventos.map((ev) => (
-          <DropdownMenuItem
-            key={ev}
-            onClick={() => setSelectedEvento(ev)}
-            className="cursor-pointer"
-          >
-            {ev}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 function EscuderiasDropdown({
   escuderias,
   selectedEscuderia,
@@ -695,13 +748,10 @@ function EscuderiasDropdown({
   );
 }
 
-function MostrarFormularioEvento({
+function MostrarFormularioPruebaNeumaticos({
   listaCategorias,
   selectedCategoria,
   setSelectedCategoria,
-  listaEventos,
-  selectedEvento,
-  setSelectedEvento,
   escuderias,
   selectedEscuderia,
   setSelectedEscuderia,
@@ -709,33 +759,121 @@ function MostrarFormularioEvento({
   listaCategorias: Categoria[];
   selectedCategoria: Categoria | null;
   setSelectedCategoria: (cat: Categoria) => void;
-  listaEventos: string[];
-  selectedEvento: string | null;
-  setSelectedEvento: (ev:string) => void;
   escuderias: Escuderia[];
   selectedEscuderia: Escuderia | null;
-  setSelectedEscuderia: (esc:Escuderia) => void;
+  setSelectedEscuderia: (esc: Escuderia | null) => void;
 }) {
+
+  const [fecha, setFecha] = useState("");
+  const [informacion, setInformacion] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const { addToast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!fecha) {
+      setError("Debe ingresar una fecha para la prueba.");
+      return;
+    }
+
+    if (!selectedEscuderia) {
+      setError("Debe seleccionar una escudería.");
+      return;
+    }
+
+    try {
+      //Crear la prueba
+      const { data: nuevaPrueba, error: errorInsertPrueba } = await supabase
+        .from("PruebaNeumatico")
+        .insert([{ fecha }])
+        .select()
+        .single();
+
+      if (errorInsertPrueba) throw errorInsertPrueba;
+
+      //Crear la relación en PruebaSobreEscuderia
+      const { error: errorRelacion } = await supabase
+        .from("PruebaSobreEscuderia")
+        .insert([
+          {
+            id_prueba_neumatico: nuevaPrueba.id_prueba_neumatico,
+            id_escuderia: selectedEscuderia.id_escuderia,
+            informacion,
+          },
+        ]);
+
+      if (errorRelacion) throw errorRelacion;
+
+      addToast("Prueba de neumáticos registrada con éxito.");
+
+      // Limpiar formulario
+      setFecha("");
+      setInformacion("");
+      setSelectedEscuderia(null);
+    } catch (err) {
+      console.error("Error al crear la prueba:", err);
+      setError("Ocurrió un error al crear la prueba de neumáticos.");
+    }
+  };
+
   return(
     <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-xl">
-      <h2 className="text-xl font-semibold mb-4">Formulario de Evento Deportivo</h2>
-      <form className="flex flex-col gap-3">
+      <h2 className="text-xl font-semibold mb-4">Formulario de la Prueba de Neumáticos</h2>
+      <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
         <CategoriasDropdown
           listaCategorias={listaCategorias}
           selectedCategoria={selectedCategoria}
           setSelectedCategoria={setSelectedCategoria}
-        />
-        <TipoEventoDropdown
-          listaEventos={listaEventos}
-          selectedEvento={selectedEvento}
-          setSelectedEvento={setSelectedEvento}
         />
         <EscuderiasDropdown
           escuderias={escuderias}
           selectedEscuderia={selectedEscuderia}
           setSelectedEscuderia={setSelectedEscuderia}
         />
-        <input type="text" placeholder="Nombre del evento" className="border p-2 rounded" />
+
+        <input type="date" className="border p-2 rounded" value={fecha} onChange={(e)=>setFecha(e.target.value)}/>
+        <input type="text" placeholder="Información de la prueba" className="border p-2 rounded" 
+              value={informacion} onChange={(e)=>setInformacion(e.target.value)}/>
+        {error && <p className="text-red-600 font-semibold">{error}</p>}
+        <button type="submit" className="bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700">Crear Prueba</button>
+      </form>
+    </div>
+  );
+}
+
+function MostrarFormularioControlTecnico({
+  listaCategorias,
+  selectedCategoria,
+  setSelectedCategoria,
+  escuderias,
+  selectedEscuderia,
+  setSelectedEscuderia,
+}: {
+  listaCategorias: Categoria[];
+  selectedCategoria: Categoria | null;
+  setSelectedCategoria: (cat: Categoria) => void;
+  escuderias: Escuderia[];
+  selectedEscuderia: Escuderia | null;
+  setSelectedEscuderia: (esc:Escuderia) => void;
+}) {
+  return(
+    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-xl">
+      <h2 className="text-xl font-semibold mb-4">Formulario de Control Técnico</h2>
+      <form className="flex flex-col gap-3">
+        <CategoriasDropdown
+          listaCategorias={listaCategorias}
+          selectedCategoria={selectedCategoria}
+          setSelectedCategoria={setSelectedCategoria}
+        />
+        <EscuderiasDropdown
+          escuderias={escuderias}
+          selectedEscuderia={selectedEscuderia}
+          setSelectedEscuderia={setSelectedEscuderia}
+        />
+        <input type="text" placeholder="Nombre del control" className="border p-2 rounded"/>
+        <input type="text" placeholder="Información del control" className="border p-2 rounded"/>
         <input type="date" className="border p-2 rounded" />
         <button className="bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700">Crear evento</button>
       </form>
