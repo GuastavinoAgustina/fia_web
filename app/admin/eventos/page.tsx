@@ -9,6 +9,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/components/toast-provider"
 import { Button } from "@/components/ui/button";
 import { Escuderia } from "@/app/client/escuderias/page";
 import { Piloto } from "../pilotos/page";
@@ -39,6 +40,7 @@ export default function CreateEventosPage() {
   const [selectedEvento, setSelectedEvento] = useState<string | null>(null);
   const [selectedEscuderia, setSelectedEscuderia] = useState<Escuderia | null>(null);
   const [carreraEnEdicion, setCarreraEnEdicion] = useState<Carrera | null>(null);
+  const { addToast } = useToast()
 
   useEffect(() => {
     setSelectedCategoria(null);
@@ -69,7 +71,7 @@ export default function CreateEventosPage() {
       try{
         const { data: carrerasCat, error: errorCat } = await supabase
           .from("Carrera")
-          .select("id_carrera, nombre")
+          .select("id_carrera, nombre, lugar, fecha")
           .eq("id_categoria", selectedCategoria.id_categoria);
 
         if (errorCat) throw errorCat.message;
@@ -134,13 +136,61 @@ export default function CreateEventosPage() {
     fetchPilotosConEscuderiaDeCategoriaSelecionada();
   }, [selectedCategoria]);
 
-  async function handleEliminarCarrera(carrera: Carrera){
-    console.log(carrera)
+  async function handleEditarCarrera(carrera: Carrera){
+     setCarreraEnEdicion(carrera);
+
+    // Traer pilotos de esta carrera
+    const { data: corre, error } = await supabase
+      .from("Corre")
+      .select("id_piloto")
+      .eq("id_carrera", carrera.id_carrera);
+
+    if (error) {
+      console.error("Error al traer pilotos de la carrera:", error);
+      return;
+    }
+
+    const idsPilotos = corre.map(c => c.id_piloto);
+    const pilotos = escuderiasConPilotos.flatMap(esc => esc.pilotos)
+      .filter(p => idsPilotos.includes(p.id_piloto));
+
+    setPilotosSeleccionados(pilotos);
   }
 
-   async function handleEditarCarrera(carrera: Carrera){
-    console.log(carrera)
-  }
+   async function handleEliminarCarrera(carrera: Carrera){
+    if (!confirm(`¿Seguro que querés eliminar la carrera "${carrera.nombre}"? Esto no se puede deshacer.`)) {
+      return;
+    }
+    try {
+      // 1. Borrar los registros en Corre relacionados con la carrera
+      const { error: errorDeleteCorre } = await supabase
+        .from("Corre")
+        .delete()
+        .eq("id_carrera", carrera.id_carrera);
+      if (errorDeleteCorre) throw errorDeleteCorre;
+
+      // 2. Borrar la carrera
+      const { error: errorDeleteCarrera } = await supabase
+        .from("Carrera")
+        .delete()
+        .eq("id_carrera", carrera.id_carrera);
+      if (errorDeleteCarrera) throw errorDeleteCarrera;
+
+      // 3. Actualizar lista local de carreras para la categoría
+      setListaCarreras(prev => prev.filter(c => c.id_carrera !== carrera.id_carrera));
+
+      if (carreraEnEdicion?.id_carrera === carrera.id_carrera) {
+        setCarreraEnEdicion(null);
+        setPilotosSeleccionados([]);
+      }
+
+      console.log("Carrera eliminada con éxito.");
+      addToast("Carrera eliminada con éxito.")
+    } catch (err) {
+      console.error("Error al eliminar la carrera:", err);
+      alert("Ocurrió un error al eliminar la carrera.");
+    }
+}
 
   return (
     <div className="min-h-screen bg-white">
@@ -164,17 +214,18 @@ export default function CreateEventosPage() {
                   listaCategorias={listaCategorias}
                   selectedCategoria={selectedCategoria}
                   setSelectedCategoria={setSelectedCategoria}
+                  escuderiasConPilotos={escuderiasConPilotos} 
                   pilotosSeleccionados={pilotosSeleccionados}
+                  setPilotosSeleccionados={setPilotosSeleccionados}
                   carreraEnEdicion={carreraEnEdicion}
                   setCarreraEnEdicion={setCarreraEnEdicion}
+                  setListaCarreras={setListaCarreras}
                 />
                 <MostrarListaCarreras
                   selectedCategoria={selectedCategoria}
                   listaCarreras={listaCarreras}
-                  onEditar={setCarreraEnEdicion}
-                  onEliminar={(carrera) => {
-                    handleEliminarCarrera(carrera)
-                  }}
+                  onEditar={handleEditarCarrera}
+                  onEliminar={handleEliminarCarrera}
                 />
               </div>
               ) : (
@@ -330,35 +381,53 @@ function MostrarFormularioCarrera({
   listaCategorias,
   selectedCategoria,
   setSelectedCategoria,
+  escuderiasConPilotos,
   pilotosSeleccionados,
+  setPilotosSeleccionados,
   carreraEnEdicion,
   setCarreraEnEdicion,
+  setListaCarreras,
 }: {
   listaCategorias: Categoria[];
   selectedCategoria: Categoria | null;
   setSelectedCategoria: (cat: Categoria) => void;
+  escuderiasConPilotos: any[];
   pilotosSeleccionados: Piloto[];
+  setPilotosSeleccionados: (pils: Piloto[]) => void;
   carreraEnEdicion: Carrera | null;
   setCarreraEnEdicion: (c: Carrera | null) => void;
+  setListaCarreras: (carreras: Carrera[]) => void;
 }) {
     const [error, setError] = useState<string | null>(null);
     const [nombre, setNombre] = useState("");
     const [lugar, setLugar] = useState("");
     const [fecha, setFecha] = useState("");
 
-      useEffect(() => {
-    if (carreraEnEdicion) {
-      setNombre(carreraEnEdicion.nombre ?? "");
-      setLugar(carreraEnEdicion.lugar ?? "");
-      setFecha(carreraEnEdicion.fecha ?? "");
-    } else {
-      setNombre("");
-      setLugar("");
-      setFecha("");
-    }
+    useEffect(() => {
+      setError(null);
+      if (carreraEnEdicion) {
+        setNombre(carreraEnEdicion.nombre);
+        setLugar(carreraEnEdicion.lugar); 
+        setFecha(carreraEnEdicion.fecha);
+        
+        const pilotosDeCarrera: Piloto[] = [];
+        escuderiasConPilotos.forEach(esc => {
+          esc.pilotos.forEach((p: Piloto) => {
+            if (pilotosSeleccionados.some(ps => ps.id_piloto === p.id_piloto)) {
+              pilotosDeCarrera.push(p);
+            }
+          });
+        });
+        setPilotosSeleccionados(pilotosDeCarrera);
+
+      } else {
+        setNombre("");
+        setLugar("");
+        setFecha("");
+      }
   }, [carreraEnEdicion]);
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
@@ -367,28 +436,108 @@ function MostrarFormularioCarrera({
       return;
     }
 
-    console.log(pilotosSeleccionados);
-
     if (pilotosSeleccionados.length === 0) {
       setError("Debes seleccionar al menos un piloto.");
       return;
     }
 
-  if (carreraEnEdicion) {
-      console.log("Guardar cambios en carrera:", carreraEnEdicion.id_carrera, {
-        nombre,
-        lugar,
-        fecha,
-      });
-    } else {
-      console.log("Crear nueva carrera:", { nombre, lugar, fecha, categoria: selectedCategoria });
-    }
+    try {
+      if (carreraEnEdicion) {
+        // ---- EDITAR CARRERA ----
+        const { error: errorUpdate } = await supabase
+          .from("Carrera")
+          .update({ nombre, lugar, fecha, id_categoria: selectedCategoria.id_categoria })
+          .eq("id_carrera", carreraEnEdicion.id_carrera);
 
-    setCarreraEnEdicion(null);
-    setNombre("");
-    setLugar("");
-    setFecha("");
-  };
+        if (errorUpdate) throw errorUpdate.message;
+
+        // Actualizar pilotos en Corre
+        // 1. Borrar los pilotos que ya no están
+        const { error: errorDelete } = await supabase
+          .from("Corre")
+          .delete()
+          .eq("id_carrera", carreraEnEdicion.id_carrera)
+          .not("id_piloto", "in", `(${pilotosSeleccionados.map(p => p.id_piloto).join(",")})`);
+        if (errorDelete) throw errorDelete.message;
+
+        // 2. Insertar pilotos nuevos que no estaban
+        const { data: existingCorre } = await supabase
+          .from("Corre")
+          .select("id_piloto")
+          .eq("id_carrera", carreraEnEdicion.id_carrera);
+
+        const existingIds = existingCorre?.map((c: any) => c.id_piloto) ?? [];
+        const nuevosPilotos = pilotosSeleccionados.filter(p => !existingIds.includes(p.id_piloto));
+
+        if (nuevosPilotos.length > 0) {
+          const inserts = nuevosPilotos.map(p => ({
+            id_carrera: carreraEnEdicion.id_carrera,
+            id_piloto: p.id_piloto,
+            id_escuderia: escuderiasConPilotos.find(esc => esc.pilotos.some((pi: { id_piloto: number; }) => pi.id_piloto === p.id_piloto))?.id_escuderia
+          }));
+          const { error: errorInsert } = await supabase
+            .from("Corre")
+            .insert(inserts);
+          if (errorInsert) throw errorInsert;
+        }
+
+        console.log("Carrera actualizada con éxito.");
+
+      } else {
+        // ---- NUEVA CARRERA ----
+        const { data: newCarrera, error: errorInsertCarrera } = await supabase
+          .from("Carrera")
+          .insert({ nombre, lugar, fecha, id_categoria: selectedCategoria.id_categoria })
+          .select()
+          .single();
+
+        if (errorInsertCarrera) throw errorInsertCarrera.message;
+
+        const inserts = pilotosSeleccionados.map(p => ({
+          id_carrera: newCarrera.id_carrera,
+          id_piloto: p.id_piloto,
+          id_escuderia: escuderiasConPilotos.find(esc => esc.pilotos.some((pi: { id_piloto: number; }) => pi.id_piloto === p.id_piloto))?.id_escuderia
+        }));
+
+        const { error: errorInsertCorre } = await supabase
+          .from("Corre")
+          .insert(inserts);
+
+        if (errorInsertCorre) throw errorInsertCorre.message;
+
+        console.log("Carrera creada con éxito.");
+      }
+
+      // Limpiar formulario
+      setCarreraEnEdicion(null);
+      setNombre("");
+      setLugar("");
+      setFecha("");
+      setPilotosSeleccionados([]);
+
+      // Recargar la lista de carreras
+      if(selectedCategoria) {
+        const { data: carrerasCat, error: errorCat } = await supabase
+          .from("Carrera")
+          .select("*")
+          .eq("id_categoria", selectedCategoria.id_categoria);
+        if (!errorCat) setListaCarreras(carrerasCat as Carrera[]);
+      }
+
+    } catch (err) {
+      console.error("Error al guardar la carrera:", err);
+      setError("Ocurrió un error al guardar la carrera.");
+    }
+    };
+
+    const handleCancelarEdicion = () => {
+      // Limpiar los campos del formulario y los pilotos seleccionados
+      setCarreraEnEdicion(null);
+      setNombre("");
+      setLugar("");
+      setFecha("");
+      setPilotosSeleccionados([]);
+    };
 
   return(
     <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-xl">
@@ -401,22 +550,36 @@ function MostrarFormularioCarrera({
           setSelectedCategoria={setSelectedCategoria}
         />
         <input name = "nombre" type="text" placeholder="Nombre de la carrera" 
-          className="border p-2 rounded" value={nombre ?? ""} onChange={(e) => setNombre(e.target.value)}/>
+          className="border p-2 rounded" value={nombre} onChange={(e) => setNombre(e.target.value)}/>
         <input name = "lugar" type="text" placeholder="Lugar de la carrera" 
-          className="border p-2 rounded" value={lugar ?? ""} onChange={(e) => setLugar(e.target.value)}/>
+          className="border p-2 rounded" value={lugar} onChange={(e) => setLugar(e.target.value)}/>
         <input name = "fecha" type="date" 
-          className="border p-2 rounded" value={fecha ?? ""} onChange={(e) => setFecha(e.target.value)}/>
+          className="border p-2 rounded" value={fecha} onChange={(e) => setFecha(e.target.value)}/>
 
         {error && <p className="text-red-600 font-semibold">{error}</p>}
 
-        <button type="submit" 
-          className={`${
-            carreraEnEdicion
-              ? "bg-blue-600 hover:bg-blue-700"
-              : "bg-green-600 hover:bg-green-700"
-          } text-white font-semibold py-2 rounded`}>
+        <div className="flex justify-center gap-2">
+          <button
+            type="submit"
+            className={`${
+              carreraEnEdicion
+                ? "bg-blue-600 hover:bg-blue-700"
+                : "bg-green-600 hover:bg-green-700"
+            } text-white font-semibold py-2 px-4 rounded w-full`}
+          >
             {carreraEnEdicion ? "Guardar cambios" : "Crear carrera"}
-        </button>
+          </button>
+
+          {carreraEnEdicion && (
+            <button
+              type="button"
+              onClick={handleCancelarEdicion}
+              className="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded w-full"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
       </form>
     </div>
 
@@ -432,7 +595,7 @@ function MostrarListaCarreras({
   selectedCategoria: Categoria | null;
   listaCarreras: Carrera[];
   onEditar: (car: Carrera) => void;
-  onEliminar?: (carrera: Carrera) => void;
+  onEliminar: (carrera: Carrera) => void;
 }) {
    return (
     <div className="bg-gray-100 p-6 rounded-lg shadow-md w-1/4">
@@ -454,7 +617,7 @@ function MostrarListaCarreras({
                 Editar
               </button>
               <button
-                onClick={() => onEliminar && onEliminar(car)}
+                onClick={() => onEliminar(car)}
                 className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
               >
                 Eliminar
