@@ -278,7 +278,7 @@ export default function Campeonato() {
 
                     {
                         selectedCategoria && (
-                            <div className="p-4 min-h-screen flex flex-col items-center">
+                            <div className="p-4 flex flex-col items-center">
                                 <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3">
                                     <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-3">
                                         <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
@@ -288,7 +288,7 @@ export default function Campeonato() {
                                         <PilotoCard key={piloto.id_piloto} piloto={piloto} colorFondo={piloto.color_escuderia!} />
                                     ))}
                                 </div>
-                                <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3">
+                                <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3 ">
                                     <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-3">
                                         <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />
                                         Campeonato de constructores

@@ -341,7 +341,7 @@ export default function SancionesCRUD() {
         {/* Formulario de Alta */}
         <div className="bg-gray-50 p-4 rounded-lg shadow border">
           <button
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold"
+            className="flex items-center gap-2 text-red-600 hover:text-red-800 font-semibold"
             onClick={() => {
                 setIsAdding(!isAdding);
                 setFormData({ fechaSancion: "", horaSancion: "", motivo: "", descripcion: "", tipo: "", id_piloto: "" });

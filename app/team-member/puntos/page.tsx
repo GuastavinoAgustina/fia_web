@@ -192,10 +192,10 @@ export default function Puntos() {
             </div>
           )}
         </div>
-        <div className="mt-3 bg-white rounded-lg shadow-lg border p-6">
+        <div className="mt-3 bg-white rounded-lg shadow-lg border">
           {
             selectedCarrera && (
-              <div className=" min-h-screen flex flex-col items-center bg-white">
+              <div className="flex flex-col items-center bg-white">
                 <div className="w-full max-w-4xl p-6 rounded-2xl space-y-3">
                   <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-3">
                     <span className="inline-block w-1.5 h-6 rounded bg-gradient-to-b from-red-500 to-red-500" />

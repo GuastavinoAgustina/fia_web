@@ -198,8 +198,9 @@ export default function SancionesCRUD() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="flex justify-center min-h-screen p-10 bg-white text-black">
+       
+      <div className="w-full max-w-6xl">
         {/* Encabezado */}
         <div className="bg-white border-b border-gray-200 pb-6 flex justify-between items-center">
           <div>
@@ -355,5 +356,6 @@ export default function SancionesCRUD() {
         </div>
       </div>
     </div>
+
   );
 }

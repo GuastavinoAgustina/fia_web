@@ -891,7 +891,7 @@ function MostrarFormularioPruebaNeumaticos({
 
 
   return(
-    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-xl">
+    <div className="bg-gray-100 p-6 rounded-lg shadow-md flex-1 max-h-[82vh] overflow-y-auto">
       <h2 className="text-xl font-semibold mb-4">
         {pruebaEnEdicion ? "Editar Prueba de Neumáticos" : "Formulario de la Prueba de Neumáticos"}
       </h2>
@@ -1161,7 +1161,7 @@ function MostrarFormularioControlTecnico({
   };
 
   return(
-    <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-xl">
+    <div className="bg-gray-100 p-6 rounded-lg shadow-md flex-1 max-h-[82vh] overflow-y-auto">
       <h2 className="text-xl font-semibold mb-4">
         {controlEnEdicion ? "Editar Control Técnico" : "Formulario de Control Técnico"}
       </h2>

@@ -364,7 +364,7 @@ async function handleCambiarRolPiloto(
           <div className="flex justify-end pt-4 border-t border-gray-100">
             <button
               onClick={handleCrearEscuderia}
-              className="bg-violet-600 hover:bg-violet-700 text-white px-6 py-3 rounded-lg font-medium shadow-sm hover:shadow-md transition-all"
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium shadow-sm hover:shadow-md transition-all"
             >
               Crear Escudería
             </button>
