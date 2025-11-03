@@ -4,5 +4,5 @@
 import { redirect } from "next/navigation";
 
 export default function AdminHomePage() {
-  redirect("/admin/perfiles");
+  redirect("/admin/escuderias");
 }

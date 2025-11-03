@@ -176,7 +176,8 @@ export default function PilotosPage() {
 // -------------------------------------------------------------
 
  return (
-        <div className="p-10 bg-white text-black">
+        <div className="flex justify-center min-h-screen p-10 bg-white text-black " >
+          <div className="w-full max-w-6xl">
             <div className="flex justify-between items-center mb-6">
                 <input
                   type="text"
@@ -223,6 +224,7 @@ export default function PilotosPage() {
                   })}
                 </div>
             )}
+            </div>
         </div>
     );
 

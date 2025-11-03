@@ -266,11 +266,12 @@ export default function CreateEventosPage() {
 }
 
   return (
-    <div className="h-screen bg-white">
-      <div className="mx-auto p-6 space-y-7">
+     <div className="min-h-screen bg-white">
+            <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <div className="mx-auto  space-y-7">
         {Encabezado()}
 
-        <SelectorTipoEvento onSeleccionar={setTipoSeleccionado} />
+  <SelectorTipoEvento tipoSeleccionado={tipoSeleccionado} onSeleccionar={setTipoSeleccionado} />
 
         {/* Formularios */}
         {tipoSeleccionado && (
@@ -340,6 +341,7 @@ export default function CreateEventosPage() {
         )}
 
       </div>
+      </div>
     </div>
   );
 }
@@ -363,26 +365,34 @@ function Encabezado(){
   );
 }
 
-function SelectorTipoEvento({ onSeleccionar }: { onSeleccionar: (tipo: string) => void }) {
+function SelectorTipoEvento({ tipoSeleccionado, onSeleccionar }: { tipoSeleccionado: string | null; onSeleccionar: (tipo: string) => void }) {
+  const btnClass = (tipo: string) =>
+    tipoSeleccionado === tipo
+      ? "px-8 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md transition-all"
+      : "px-8 py-3 bg-white text-red-600 font-semibold rounded-lg border border-red-200 hover:bg-red-50 transition-all";
+
   return (
     <div className="text-xl flex justify-center mt-10">
       <div className="flex gap-6">
         <button
           onClick={() => onSeleccionar("carrera")}
-          className="px-8 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-all"
+          className={btnClass("carrera")}
+          aria-pressed={tipoSeleccionado === "carrera"}
         >
           Carrera
         </button>
         <button
           onClick={() => onSeleccionar("pruebaNeumaticos")}
-          className="px-8 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-all"
+          className={btnClass("pruebaNeumaticos")}
+          aria-pressed={tipoSeleccionado === "pruebaNeumaticos"}
         >
           Prueba de Neumáticos
         </button>
 
         <button
           onClick={() => onSeleccionar("controlTecnico")}
-          className="px-8 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-all"
+          className={btnClass("controlTecnico")}
+          aria-pressed={tipoSeleccionado === "controlTecnico"}
         >
           Control Técnico
         </button>
