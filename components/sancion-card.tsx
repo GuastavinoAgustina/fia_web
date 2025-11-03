@@ -37,8 +37,8 @@ export default function SancionCard({ sancion, colorEscuderia }: SancionCardProp
     >
       <div className="flex flex-col md:flex-row items-stretch">
         
-        {/* Lado Izquierdo: Información clave (Texto Negro) */}
-        <div className="p-4 md:p-6 space-y-2 flex-grow border-b md:border-b-0 md:border-r border-black/10 z-10">
+  {/* Lado Izquierdo: Información clave (Texto Negro) */}
+  <div className="p-4 md:p-6 space-y-2 w-full md:w-2/3 border-b md:border-b-0 md:border-r border-black/10 z-10">
         <p className="text-lg font-bold">
             Tipo: <span className="font-normal">{sancion.tipo}</span>
           </p>
@@ -59,8 +59,8 @@ export default function SancionCard({ sancion, colorEscuderia }: SancionCardProp
           </p>
         </div>
         
-        {/* Lado Derecho: Descripción (Texto Negro) */}
-        <div className="p-4 md:p-6 flex-grow-0 md:flex-grow flex flex-col justify-start z-10">
+  {/* Lado Derecho: Descripción (Texto Negro) */}
+  <div className="p-4 md:p-6 w-full md:w-1/3 flex flex-col justify-start z-10">
             <h4 className="text-xl font-bold mb-2">Descripción</h4>
             <p className="text-base italic font-normal text-black/80">
                 {sancion.descripcion || "Descripción no proporcionada."}
