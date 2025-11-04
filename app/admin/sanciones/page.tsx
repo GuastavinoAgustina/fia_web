@@ -255,6 +255,7 @@ export default function SancionesCRUD() {
   // 🟡 Editar sanción
   const handleEditSancion = async (sancion: Sancion) => {
     setEditSancionId(sancion.id_sancion);
+    setIsAdding(false);
 
     // Obtener el id_piloto de la sanción (solo tiene un piloto en el diseño actual)
     const { data: pilotoSancionData } = await supabase
@@ -441,6 +442,7 @@ export default function SancionesCRUD() {
             className="flex items-center gap-2 text-red-600 hover:text-red-800 font-semibold"
             onClick={() => {
               setIsAdding(!isAdding);
+              setEditSancionId(null);
               setFormData({ fechaSancion: "", horaSancion: "", descripcion: "", tipo: "", id_piloto: "", id_escuderia: "", id_carrera: "" });
             }}
           >
@@ -500,14 +502,14 @@ export default function SancionesCRUD() {
               {/* Motivo y Descripción (Dos columnas para mejor distribución) */}
               <input
                 type="text"
-                placeholder="Tipo (Ej: Multa, Pérdida de puestos...)"
+                placeholder="Tipo (Ej: Multa, Pérdida de puestos...) *"
                 className="border rounded p-2 lg:col-span-2"
                 value={formData.tipo}
                 onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
               />
               <input
                 type="text"
-                placeholder="Descripción (Opcional)"
+                placeholder="Descripción *"
                 className="border rounded p-2 lg:col-span-2 sm:col-span-1"
                 value={formData.descripcion}
                 onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
@@ -636,13 +638,14 @@ export default function SancionesCRUD() {
                               <div className="flex gap-2 justify-end mt-2">
                                 <button
                                   onClick={handleSaveEdit}
-                                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                                  disabled={!formData.fechaSancion || !formData.tipo || !formData.descripcion}
                                 >
                                   <FaSave /> Guardar
                                 </button>
                                 <button
                                   onClick={() => setEditSancionId(null)}
-                                  className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
                                 >
                                   <FaTimes /> Cancelar
                                 </button>
