@@ -4,7 +4,6 @@ import React from 'react';
 type Sancion = {
     id_sancion: number;
     fechaSancion: string;
-    motivo: string;
     descripcion: string;
     nombrePiloto: string;
     nombreCarrera: string;
@@ -41,9 +40,6 @@ export default function SancionCard({ sancion, colorEscuderia }: SancionCardProp
   <div className="p-4 md:p-6 space-y-2 w-full md:w-2/3 border-b md:border-b-0 md:border-r border-black/10 z-10">
         <p className="text-lg font-bold">
             Tipo: <span className="font-normal">{sancion.tipo}</span>
-          </p>
-          <p className="text-lg font-bold">
-            Motivo: <span className="font-normal">{sancion.motivo}</span>
           </p>
           <p className="text-lg font-bold">
             Piloto: <span className="font-normal">{sancion.nombrePiloto}</span>
